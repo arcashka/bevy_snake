@@ -1,8 +1,38 @@
+use crate::common_types::Position;
+
 use bevy::{
     prelude::*,
     render::render_resource::{AsBindGroup, ShaderRef},
     sprite::Material2d,
 };
+
+#[derive(Component)]
+pub struct HighlightComponent {
+    highlight_list: Vec<Position>,
+}
+
+impl HighlightComponent {
+    pub fn new() -> Self {
+        Self {
+            highlight_list: Vec::new(),
+        }
+    }
+    pub fn clear_highlight(&mut self) {
+        self.highlight_list.clear();
+    }
+
+    pub fn highlighted(&self) -> Vec<Position> {
+        self.highlight_list.clone()
+    }
+
+    pub fn highlight(&mut self, pos: Position) {
+        self.highlight_list.push(pos);
+    }
+
+    pub fn set_highlighted(&mut self, list: Vec<Position>) {
+        self.highlight_list = list;
+    }
+}
 
 #[derive(AsBindGroup, Debug, Clone, Asset, TypePath)]
 pub struct FieldMaterial {
@@ -36,13 +66,11 @@ impl FieldMaterial {
         }
     }
 
-    pub fn highlight(&mut self, pos: IVec2) {
-        self.highlight_list.push(pos);
+    pub fn set_highlighted(&mut self, highlighted: Vec<Position>) {
+        self.highlight_list = highlighted
+            .iter()
+            .map(|pos| IVec2::new(pos.i(), pos.j()))
+            .collect();
         self.highlight_list_length = self.highlight_list.len() as i32;
-    }
-
-    pub fn clear_highlight(&mut self) {
-        self.highlight_list.clear();
-        self.highlight_list_length = 0;
     }
 }

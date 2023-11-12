@@ -12,7 +12,9 @@ fn fragment(
     mesh: VertexOutput,
 ) -> @location(0) vec4<f32> {
     let uv = mesh.uv;
-    let cellIndex: vec2<i32> = vec2<i32>(uv * vec2<f32>(u_FieldSize));
+    // WGPU and bevy have coordinate system
+    let flipped_uv = vec2<f32>(uv.x, 1.0 - uv.y);
+    let cellIndex: vec2<i32> = vec2<i32>(flipped_uv * vec2<f32>(u_FieldSize));
 
     var isHighlighted: bool = false;
     for (var i: i32 = 0; i < u_HighlightListLength; i = i + 1) {

@@ -3,6 +3,7 @@ mod material;
 
 pub use field::Field;
 pub use material::FieldMaterial;
+pub use material::HighlightComponent;
 
 use bevy::{
     prelude::*,
@@ -22,8 +23,8 @@ impl FieldPlugin {
     }
 }
 
-#[derive(Component)]
-pub struct GridId(i32);
+#[derive(Component, Clone, Copy, Eq, PartialEq, Debug)]
+pub struct FieldId(pub i32);
 fn setup(
     mut commands: Commands,
     windows: Query<&Window>,
@@ -56,35 +57,22 @@ fn setup(
             ..default()
         },
         field,
-        GridId(0),
+        HighlightComponent::new(),
+        FieldId(0),
     ));
 }
 
-//type FieldChangedOrAdded = Or<(Changed<Field>, Added<Field>)>;
-//fn on_field_changed(
-//    mut query: Query<
-//        (
-//            &mut Transform,
-//            &Mesh2dHandle,
-//            &Handle<FieldMaterial>,
-//            &Field,
-//        ),
-//        FieldChangedOrAdded,
-//    >,
-//    mut meshes: ResMut<Assets<Mesh>>,
-//    mut materials: ResMut<Assets<FieldMaterial>>,
-//) {
-//    for (mut transform, field_mesh_handle, field_material_handle, field) in query.iter_mut() {
-//        if let Some(mesh) = meshes.get_mut(&field_mesh_handle.0) {
-//            *mesh = Mesh::from(shape::Quad::new(field.size()));
-//        }
-//        // Not actually needed
-//        if let Some(material) = materials.get_mut(field_material_handle.id()) {
-//            info!("material cell new size: {:?}", field.cell_size);
-//            material.update_size(field.dimensions);
-//        }
-//    }
-//}
+type HighlightChanged = Or<(Changed<HighlightComponent>, Added<HighlightComponent>)>;
+fn on_highlight_changed(
+    mut query: Query<(&Handle<FieldMaterial>, &HighlightComponent), HighlightChanged>,
+    mut materials: ResMut<Assets<FieldMaterial>>,
+) {
+    for (field_material_handle, highlight) in query.iter_mut() {
+        if let Some(material) = materials.get_mut(field_material_handle.id()) {
+            material.set_highlighted(highlight.highlighted());
+        }
+    }
+}
 
 fn resize_listener(
     mut resize_events: EventReader<WindowResized>,
@@ -113,6 +101,6 @@ impl Plugin for FieldPlugin {
         app.insert_resource(self.settings)
             .add_plugins(Material2dPlugin::<FieldMaterial>::default())
             .add_systems(Startup, setup)
-            .add_systems(FixedUpdate, resize_listener);
+            .add_systems(FixedUpdate, (resize_listener, on_highlight_changed));
     }
 }

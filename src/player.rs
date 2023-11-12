@@ -15,56 +15,6 @@ struct Player {
     direction: Direction,
 }
 
-#[derive(Component, Clone, Copy)]
-struct Position {
-    i: i32,
-    j: i32,
-}
-
-impl Position {
-    fn step_into(&self, direction: Direction, step: i32, grid: &GridSettings) -> Self {
-        let mut i = self.i;
-        let mut j = self.j;
-        match direction {
-            Direction::Left => i -= step,
-            Direction::Right => i += step,
-            Direction::Up => j -= step,
-            Direction::Down => j += step,
-        };
-        fn wrap(x: i32, max: i32) -> i32 {
-            if x < 0 {
-                max + x
-            } else if x >= max {
-                x - max
-            } else {
-                x
-            }
-        }
-        Self {
-            i: wrap(i, grid.num_cols),
-            j: wrap(j, grid.num_rows),
-        }
-    }
-
-    fn single_step_into(&self, direction: Direction, grid: &GridSettings) -> Self {
-        self.step_into(direction, 1, grid)
-    }
-
-    fn translation(&self, grid: &GridSettings) -> Vec2 {
-        let h = grid.cell_size * grid.num_rows as f32;
-        let w = grid.cell_size * grid.num_cols as f32;
-        Vec2::new(
-            self.i as f32 * grid.cell_size - w / 2.0,
-            self.j as f32 * grid.cell_size - h / 2.0,
-        )
-    }
-
-    fn matches(&self, translation: Vec2, grid: &GridSettings) -> bool {
-        let this_translation = self.translation(grid);
-        translation.distance(this_translation) < 0.01
-    }
-}
-
 #[derive(Resource, Clone)]
 struct PlayerSettings {
     starting_position: Position,
@@ -98,39 +48,6 @@ fn setup(mut commands: Commands, settings: Res<PlayerSettings>, grid: Res<GridSe
         },
         position,
     ));
-}
-
-#[derive(Event)]
-struct ChangeDirection {
-    entity: Entity,
-    new_direction: Direction,
-}
-
-fn handle_input(
-    key: Res<Input<KeyCode>>,
-    query: Query<Entity, With<Player>>,
-    mut change_direction_events: EventWriter<ChangeDirection>,
-) {
-    for entity in query.iter() {
-        let new_direction = if key.pressed(KeyCode::Left) {
-            Some(Direction::Left)
-        } else if key.pressed(KeyCode::Right) {
-            Some(Direction::Right)
-        } else if key.pressed(KeyCode::Up) {
-            Some(Direction::Up)
-        } else if key.pressed(KeyCode::Down) {
-            Some(Direction::Down)
-        } else {
-            None
-        };
-
-        if let Some(direction) = new_direction {
-            change_direction_events.send(ChangeDirection {
-                entity,
-                new_direction: direction,
-            });
-        }
-    }
 }
 
 fn player_movement(

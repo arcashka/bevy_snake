@@ -21,12 +21,6 @@ impl Field {
         info!("cell size changed: {}", self.cell_size);
     }
 
-    pub fn calculate_cell_size(dimensions: IVec2, offset: Vec2, window_size: Vec2) -> f32 {
-        let cell_width = (window_size.x - offset.x) / dimensions.x as f32;
-        let cell_height = (window_size.y - offset.y) / dimensions.y as f32;
-        cell_width.min(cell_height)
-    }
-
     pub fn size(&self) -> Vec2 {
         Vec2 {
             x: self.cell_size * self.dimensions.x as f32,
@@ -40,5 +34,15 @@ impl Field {
 
     pub fn translation(&self) -> Vec2 {
         self.offset
+    }
+
+    pub fn cell_size(&self) -> f32 {
+        self.cell_size
+    }
+
+    fn calculate_cell_size(dimensions: IVec2, offset: Vec2, window_size: Vec2) -> f32 {
+        let cell_width = (window_size.x - offset.x) / dimensions.x as f32;
+        let cell_height = (window_size.y - offset.y) / dimensions.y as f32;
+        cell_width.min(cell_height)
     }
 }
