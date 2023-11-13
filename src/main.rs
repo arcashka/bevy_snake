@@ -8,7 +8,7 @@ use player_plugin::PlayerPlugin;
 use bevy::prelude::*;
 
 fn main() {
-    let field_plugin = FieldPlugin::new(IVec2 { x: 100, y: 100 }, Vec2 { x: 0.0, y: 0.0 });
+    let field_plugin = FieldPlugin::new(IVec2 { x: 20, y: 20 }, Vec2 { x: 0.0, y: 0.0 });
     App::new()
         .add_plugins((DefaultPlugins, PlayerPlugin, field_plugin))
         .run();

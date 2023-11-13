@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
-pub struct Position {
+pub struct Cell {
     pos: IVec2,
 }
 
-impl Position {
+impl Cell {
     pub fn new(x: i32, y: i32) -> Self {
         Self {
             pos: IVec2::new(x, y),

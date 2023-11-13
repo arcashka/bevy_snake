@@ -1,4 +1,4 @@
-use crate::common_types::Position;
+use crate::common_types::Cell;
 
 use bevy::{
     prelude::*,
@@ -8,7 +8,7 @@ use bevy::{
 
 #[derive(Component)]
 pub struct HighlightComponent {
-    highlight_list: Vec<Position>,
+    highlight_list: Vec<Cell>,
 }
 
 impl HighlightComponent {
@@ -17,20 +17,21 @@ impl HighlightComponent {
             highlight_list: Vec::new(),
         }
     }
+
+    pub fn is_highlighted(&self, pos: &Cell) -> bool {
+        self.highlight_list.contains(pos)
+    }
+
     pub fn clear_highlight(&mut self) {
         self.highlight_list.clear();
     }
 
-    pub fn highlighted(&self) -> Vec<Position> {
+    pub fn highlighted(&self) -> Vec<Cell> {
         self.highlight_list.clone()
     }
 
-    pub fn highlight(&mut self, pos: Position) {
+    pub fn highlight(&mut self, pos: Cell) {
         self.highlight_list.push(pos);
-    }
-
-    pub fn set_highlighted(&mut self, list: Vec<Position>) {
-        self.highlight_list = list;
     }
 }
 
@@ -66,7 +67,7 @@ impl FieldMaterial {
         }
     }
 
-    pub fn set_highlighted(&mut self, highlighted: Vec<Position>) {
+    pub fn set_highlighted(&mut self, highlighted: Vec<Cell>) {
         self.highlight_list = highlighted
             .iter()
             .map(|pos| IVec2::new(pos.i(), pos.j()))

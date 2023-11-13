@@ -1,7 +1,7 @@
 mod input_plugin;
 mod position;
 
-use crate::common_types::Position;
+use crate::common_types::Cell;
 use crate::field_plugin::{Field, FieldId, HighlightComponent};
 
 use position::Direction;
@@ -17,14 +17,13 @@ struct Player;
 
 #[derive(Resource, Clone)]
 struct PlayerSettings {
-    starting_position: Position,
+    starting_position: Cell,
 }
 
-#[derive(Component)]
-struct NeedsPositioning;
+#[derive(Component, Clone, Copy, Debug)]
+struct ProgressTowardsNextCell(f32);
 
 fn setup(mut commands: Commands, settings: Res<PlayerSettings>) {
-    let position = settings.starting_position.to_owned();
     commands.spawn((
         SpriteBundle {
             transform: Transform {
@@ -40,79 +39,92 @@ fn setup(mut commands: Commands, settings: Res<PlayerSettings>) {
         Player,
         Direction::Right,
         FieldId(0),
-        NeedsPositioning,
-        position,
+        settings.starting_position,
+        ProgressTowardsNextCell(0.0),
     ));
 }
 
-type PlayerWhichNeedsPositioning = (With<NeedsPositioning>, With<Player>);
-fn startup_positioning(
-    mut commands: Commands,
+fn position_on_field(
     mut player_query: Query<
-        (Entity, &Position, &FieldId, &mut Transform),
-        PlayerWhichNeedsPositioning,
+        (
+            &Cell,
+            &ProgressTowardsNextCell,
+            &Direction,
+            &FieldId,
+            &mut Transform,
+        ),
+        With<Player>,
     >,
     field_query: Query<(&Field, &FieldId)>,
 ) {
-    for (entity, position, player_field_id, mut transform) in player_query.iter_mut() {
+    for (cell, progress, direction, player_field_id, mut transform) in player_query.iter_mut() {
         for (field, field_id) in field_query.iter() {
-            if player_field_id == field_id {
-                transform.translation = field.translation_of_position(position).extend(1.0);
-                commands.entity(entity).remove::<NeedsPositioning>();
+            if player_field_id != field_id {
+                continue;
             }
+            let base_translation = field.translation_of_position(cell).extend(1.0);
+            let next_cell = field.single_step_into(cell, direction);
+            let next_cell_translation = field.translation_of_position(&next_cell).extend(1.0);
+            transform.translation =
+                base_translation * (1.0 - progress.0) + next_cell_translation * progress.0;
         }
     }
 }
 
-fn player_movement(
+fn move_forward(
     time: Res<Time>,
-    mut player_query: Query<(&mut Transform, &Direction), With<Player>>,
-) {
-    for (mut transform, direction) in player_query.iter_mut() {
-        let step = 50.0 * time.delta_seconds();
-        match direction {
-            Direction::Left => transform.translation.x -= step,
-            Direction::Right => transform.translation.x += step,
-            Direction::Up => transform.translation.y += step,
-            Direction::Down => transform.translation.y -= step,
-        }
-    }
-}
-
-fn check_if_on_new_cell(
-    mut player_query: Query<(&Transform, &mut Position, &FieldId), With<Player>>,
-    mut field_query: Query<(&Field, &mut HighlightComponent, &FieldId)>,
-) {
-    for (transform, mut position, player_field_id) in player_query.iter_mut() {
-        for (field, mut highlight, field_id) in field_query.iter_mut() {
-            if field_id == player_field_id {
-                let new_position = field.position_of_translation(transform.translation.xy());
-                if new_position != *position {
-                    *position = new_position;
-                }
-                highlight.clear_highlight();
-                highlight.highlight(*position);
-            }
-        }
-    }
-}
-
-fn handle_turns(
-    mut player_query: Query<(&mut Transform, &mut Direction, &Position, &FieldId), With<Player>>,
+    mut query: Query<
+        (
+            &mut ProgressTowardsNextCell,
+            &mut Cell,
+            &mut Direction,
+            &mut Transform,
+            &FieldId,
+        ),
+        With<Player>,
+    >,
     field_query: Query<(&Field, &FieldId)>,
     mut turn_requested_events: ResMut<Events<ChangeDirectionRequested>>,
 ) {
-    for (mut transform, mut direction, position, player_field_id) in player_query.iter_mut() {
+    for (mut progress, mut cell, mut direction, mut transform, player_field_id) in query.iter_mut()
+    {
+        let step = time.delta_seconds() * 5.0;
+        progress.0 += step;
+        if progress.0 < 1.0 {
+            continue;
+        }
+        progress.0 = 0.0;
         for (field, field_id) in field_query.iter() {
-            if field_id == player_field_id {
-                let center = field.translation_of_position(position);
-                if center.distance(transform.translation.xy()) < 0.5 {
-                    for event in turn_requested_events.drain() {
-                        *direction = event.new_direction;
-                        transform.translation = field.translation_of_position(position).extend(1.0);
-                    }
-                }
+            if field_id != player_field_id {
+                continue;
             }
+            *cell = field.single_step_into(&cell, &direction);
+            for event in turn_requested_events.drain() {
+                *direction = event.new_direction;
+                transform.translation = field.translation_of_position(&cell).extend(1.0);
+            }
+        }
+    }
+}
+
+fn highlight_cell(
+    query: Query<(&ProgressTowardsNextCell, &Cell, &Direction, &FieldId), With<Player>>,
+    mut field_query: Query<(&Field, &mut HighlightComponent, &FieldId)>,
+) {
+    for (progress, cell, direction, player_field_id) in query.iter() {
+        if progress.0 < 0.5 {
+            continue;
+        }
+        for (field, mut highlight, field_id) in field_query.iter_mut() {
+            if field_id != player_field_id {
+                continue;
+            }
+            let next_cell = field.single_step_into(cell, direction);
+            if highlight.is_highlighted(&next_cell) {
+                continue;
+            }
+            highlight.clear_highlight();
+            highlight.highlight(next_cell);
         }
     }
 }
@@ -122,16 +134,15 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(InputPlugin)
             .insert_resource(PlayerSettings {
-                starting_position: Position::new(0, 0),
+                starting_position: Cell::new(0, 0),
             })
             .add_systems(Startup, setup)
             .add_systems(
                 FixedUpdate,
                 (
-                    startup_positioning,
-                    player_movement.after(startup_positioning),
-                    check_if_on_new_cell.after(player_movement),
-                    handle_turns,
+                    move_forward,
+                    position_on_field.after(move_forward),
+                    highlight_cell.after(move_forward),
                 ),
             );
     }
