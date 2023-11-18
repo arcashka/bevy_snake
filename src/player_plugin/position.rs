@@ -1,5 +1,4 @@
-use crate::common_types::Cell;
-use crate::field_plugin::Field;
+use crate::field_plugin::{Cell, Field};
 
 use bevy::prelude::*;
 

@@ -1,8 +1,7 @@
 mod input_plugin;
 mod position;
 
-use crate::common_types::Cell;
-use crate::field_plugin::{Field, FieldId, HighlightComponent};
+use crate::field_plugin::{Cell, Field, FieldId, HighlightComponent};
 
 use position::Direction;
 

@@ -15,6 +15,27 @@ pub struct FieldPlugin {
     settings: FieldSettings,
 }
 
+#[derive(Component, Clone, Copy, Debug, PartialEq)]
+pub struct Cell {
+    pos: IVec2,
+}
+
+impl Cell {
+    pub fn new(x: i32, y: i32) -> Self {
+        Self {
+            pos: IVec2::new(x, y),
+        }
+    }
+
+    pub fn i(&self) -> i32 {
+        self.pos.x
+    }
+
+    pub fn j(&self) -> i32 {
+        self.pos.y
+    }
+}
+
 impl FieldPlugin {
     pub fn new(dimensions: IVec2, offset: Vec2) -> Self {
         Self {
@@ -44,7 +65,7 @@ fn setup(
         },
     );
 
-    let texture_handle = asset_server.load("grass.png");
+    let texture_handle = asset_server.load("background_sky.jpg");
     let mesh = Mesh::from(shape::Quad::new(field.size()));
     let mesh_handle = meshes.add(mesh);
     let material = FieldMaterial::new(field.dimensions(), Some(texture_handle));

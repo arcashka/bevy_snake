@@ -1,4 +1,4 @@
-use crate::common_types::Cell;
+use super::Cell;
 
 use bevy::{
     prelude::*,

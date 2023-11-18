@@ -1,5 +1,10 @@
-use crate::common_types::Cell;
-use crate::field_plugin::{Field, FieldId};
+mod display_food;
+
+use crate::field_plugin::{Cell, Field, FieldId};
+
+use display_food::FoodDisplayPlugin;
+
+use rand::{thread_rng, Rng};
 
 use bevy::prelude::*;
 
@@ -9,14 +14,15 @@ struct FoodSpawnTimer(Timer);
 pub struct FoodPlugin;
 impl Plugin for FoodPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_food)
-            .add_systems(FixedUpdate, (spawn_food, position_food));
+        app.add_plugins(FoodDisplayPlugin)
+            .add_systems(Startup, setup_food)
+            .add_systems(FixedUpdate, spawn_food);
     }
 }
 
 fn setup_food(mut commands: Commands) {
     commands.insert_resource(FoodSpawnTimer(Timer::from_seconds(
-        5.0,
+        2.0,
         TimerMode::Repeating,
     )));
 }
@@ -24,37 +30,25 @@ fn setup_food(mut commands: Commands) {
 #[derive(Component)]
 struct Food;
 
-fn spawn_food(mut commands: Commands, time: Res<Time>, mut timer: ResMut<FoodSpawnTimer>) {
-    if timer.0.tick(time.delta()).just_finished() {
-        commands.spawn((
-            Food,
-            Cell::new(2, 3),
-            SpriteBundle {
-                transform: Transform {
-                    scale: Vec3::new(20.0, 20.0, 0.0),
-                    ..default()
-                },
-                sprite: Sprite {
-                    color: Color::rgb(0.0, 0.73, 0.85),
-                    ..default()
-                },
-                ..default()
-            },
-            FieldId(0),
-        ));
-    }
+#[derive(Component, Clone, Copy, Eq, PartialEq, Hash)]
+enum FoodType {
+    Banana,
+    Strawberry,
 }
 
-fn position_food(
-    mut food_query: Query<(&mut Transform, &Cell, &FieldId), With<Food>>,
-    field_query: Query<(&Field, &FieldId)>,
+fn spawn_food(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut timer: ResMut<FoodSpawnTimer>,
+    query: Query<(&Field, &FieldId)>,
 ) {
-    for (mut transform, cell, food_field_id) in food_query.iter_mut() {
-        for (field, field_id) in field_query.iter() {
-            if food_field_id != field_id {
-                continue;
-            }
-            transform.translation = field.translation_of_position(cell).extend(1.0);
+    for (field, field_id) in query.iter() {
+        if timer.0.tick(time.delta()).just_finished() {
+            let mut rng = thread_rng();
+            let i = rng.gen_range(0..field.dimensions().x);
+            let j = rng.gen_range(0..field.dimensions().y);
+
+            commands.spawn((Food, FoodType::Strawberry, Cell::new(i, j), *field_id));
         }
     }
 }
