@@ -30,6 +30,9 @@ fn setup_food(mut commands: Commands) {
 #[derive(Component)]
 struct Food;
 
+#[derive(Component)]
+pub struct Interactable;
+
 #[derive(Component, Clone, Copy, Eq, PartialEq, Hash)]
 enum FoodType {
     Banana,
@@ -48,7 +51,13 @@ fn spawn_food(
             let i = rng.gen_range(0..field.dimensions().x);
             let j = rng.gen_range(0..field.dimensions().y);
 
-            commands.spawn((Food, FoodType::Strawberry, Cell::new(i, j), *field_id));
+            commands.spawn((
+                Food,
+                FoodType::Strawberry,
+                Cell::new(i, j),
+                *field_id,
+                Interactable,
+            ));
         }
     }
 }
