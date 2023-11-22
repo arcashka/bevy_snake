@@ -22,6 +22,9 @@ struct ProgressTowardsNextCell(f32);
 #[derive(Component, Clone, Copy, Deref, DerefMut)]
 struct ProgressAlreadyReported(bool);
 
+#[derive(Component, Clone, Copy, Deref, DerefMut)]
+struct PlayerId(i32);
+
 fn setup(mut commands: Commands, settings: Res<PlayerSettings>) {
     commands.spawn((
         SpriteBundle {
@@ -165,6 +168,7 @@ fn check_collision(
                 if new_cell_event.cell != *cell {
                     continue;
                 }
+                info!("GENERATE EVENT");
                 collision_events.send(CollisionHappened { player, other })
             }
         }
@@ -177,10 +181,10 @@ struct StepedOnNewCell {
     cell: Cell,
 }
 
-#[derive(Event)]
-struct CollisionHappened {
-    player: Entity,
-    other: Entity,
+#[derive(Event, Debug)]
+pub struct CollisionHappened {
+    pub player: Entity,
+    pub other: Entity,
 }
 
 pub struct PlayerPlugin;

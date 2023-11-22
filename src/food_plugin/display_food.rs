@@ -1,5 +1,6 @@
 use super::{Food, FoodType};
 use crate::field_plugin::{Cell, Field, FieldId};
+
 use bevy::prelude::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;

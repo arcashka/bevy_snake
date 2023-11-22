@@ -1,12 +1,12 @@
 mod display_food;
 
 use crate::field_plugin::{Cell, Field, FieldId};
+use crate::player_plugin::CollisionHappened;
 
 use display_food::FoodDisplayPlugin;
 
-use rand::{thread_rng, Rng};
-
 use bevy::prelude::*;
+use rand::{thread_rng, Rng};
 
 #[derive(Resource, Default)]
 struct FoodSpawnTimer(Timer);
@@ -16,7 +16,8 @@ impl Plugin for FoodPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(FoodDisplayPlugin)
             .add_systems(Startup, setup_food)
-            .add_systems(FixedUpdate, spawn_food);
+            .add_systems(FixedUpdate, spawn_food)
+            .add_systems(Update, handle_collision);
     }
 }
 
@@ -37,6 +38,23 @@ pub struct Interactable;
 enum FoodType {
     Banana,
     Strawberry,
+}
+
+fn handle_collision(
+    mut commands: Commands,
+    query: Query<Entity, With<Food>>,
+    mut events: EventReader<CollisionHappened>,
+) {
+    info!("CHECKING....");
+    for event in events.read() {
+        info!("GOT COLLISION EVENT");
+        for food in query.iter() {
+            if event.other == food {
+                info!("Despawning food");
+                commands.entity(food).despawn();
+            }
+        }
+    }
 }
 
 fn spawn_food(
