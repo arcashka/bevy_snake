@@ -23,7 +23,7 @@ struct PlayerSettings {
 struct ProgressTowardsNextCell(f32);
 
 #[derive(Component, Clone, Copy, Deref, DerefMut, PartialEq, Debug)]
-struct PlayerId(i32);
+pub struct PlayerId(i32);
 
 #[derive(Component, Clone, Copy, Deref, DerefMut, Eq, PartialEq, PartialOrd, Ord)]
 struct FragmentNumber(usize);
@@ -126,10 +126,6 @@ fn position_fragments(
                 let (_, _, _, ref mut transform) = &mut fragments[i];
                 transform.translation =
                     base_translation * (1.0 - progress.0) + next_cell_translation * progress.0;
-                info!(
-                    "progress {} between {:?} and {:?}. Translation: {:?}",
-                    progress.0, cell, next_cell, transform.translation
-                );
             }
         }
     }
@@ -180,18 +176,14 @@ fn move_onto_new_cell(
                 });
                 for i in 0..fragments.len() {
                     let (_, number, cell) = &mut fragments[i];
-                    info!("Fragment {} is on {:?}", number.0, cell);
                     let next_cell = if number.0 == SNAKE_HEAD_INDEX {
-                        info!("Head goes into {:?}", direction);
                         field.single_step_into(cell, direction)
                     } else {
-                        let (_, number, next_fragment_cell) = &fragments[i + 1];
-                        info!("Fragment {} goes into {:?}", number.0, next_fragment_cell);
+                        let (_, _, next_fragment_cell) = &fragments[i + 1];
                         **next_fragment_cell
                     };
                     let (_, number, ref mut cell) = fragments[i];
                     **cell = next_cell;
-                    info!("Fragment {} moved onto {:?}", number.0, next_cell);
                     if number.0 == 0 {
                         moved_onto_new_cell_events.send(MovedOntoNextCellEvent {
                             player_id: *player_id,
@@ -274,7 +266,6 @@ fn grow_snake_on_feeding(
                 let tail_direction = if fragments.len() > 1 {
                     let last = fragments[0].2;
                     let pre_last = fragments[1].2;
-                    info!("last: {:?}, pre_last: {:?}", last, pre_last);
                     last.direction(pre_last)
                 } else {
                     *direction
@@ -283,10 +274,6 @@ fn grow_snake_on_feeding(
                 let tail_number = fragments[0].1;
                 let new_number = FragmentNumber(tail_number.0 + 1);
                 let new_cell = field.single_step_into(tail, &tail_direction.opposite());
-                info!(
-                    "Tail: {:?}, Tail direction: {:?}, New cell: {:?}",
-                    tail, tail_direction, new_cell
-                );
                 commands.spawn((
                     Fragment,
                     SpriteBundle {
@@ -324,11 +311,11 @@ impl Plugin for PlayerPlugin {
                 FixedUpdate,
                 (
                     make_step,
-                    position_fragments,
+                    position_fragments.after(make_step),
                     move_onto_new_cell.before(position_fragments),
                     grow_snake_on_feeding.before(position_fragments),
-                    apply_input,
-                    check_collision,
+                    apply_input.after(make_step),
+                    check_collision.after(make_step),
                 ),
             );
     }
