@@ -10,6 +10,17 @@ pub enum Direction {
     Down,
 }
 
+impl Direction {
+    pub fn opposite(&self) -> Self {
+        match self {
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+        }
+    }
+}
+
 impl Field {
     pub fn step_into(&self, from: &Cell, direction: &Direction, step: i32) -> Cell {
         let mut i = from.i();

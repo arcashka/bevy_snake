@@ -17,7 +17,7 @@ pub struct FieldPlugin {
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
 pub struct Cell {
-    pos: IVec2,
+    pub pos: IVec2,
 }
 
 impl Cell {

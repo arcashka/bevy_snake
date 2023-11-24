@@ -1,7 +1,7 @@
 mod display_food;
 
 use crate::field_plugin::{Cell, Field, FieldId};
-use crate::player_plugin::CollisionHappened;
+use crate::player_plugin::CollisionEvent;
 
 use display_food::FoodDisplayPlugin;
 
@@ -43,14 +43,12 @@ enum FoodType {
 fn handle_collision(
     mut commands: Commands,
     query: Query<Entity, With<Food>>,
-    mut events: EventReader<CollisionHappened>,
+    mut events: EventReader<CollisionEvent>,
 ) {
-    info!("CHECKING....");
     for event in events.read() {
-        info!("GOT COLLISION EVENT");
+        info!("collision: {:?}", event);
         for food in query.iter() {
             if event.other == food {
-                info!("Despawning food");
                 commands.entity(food).despawn();
             }
         }
