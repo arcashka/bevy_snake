@@ -18,21 +18,21 @@ impl HighlightComponent {
         }
     }
 
-    pub fn is_highlighted(&self, pos: &Cell) -> bool {
-        self.highlight_list.contains(pos)
-    }
+    // pub fn is_highlighted(&self, pos: &Cell) -> bool {
+    //     self.highlight_list.contains(pos)
+    // }
 
-    pub fn clear_highlight(&mut self) {
-        self.highlight_list.clear();
-    }
+    // pub fn clear_highlight(&mut self) {
+    //     self.highlight_list.clear();
+    // }
 
     pub fn highlighted(&self) -> Vec<Cell> {
         self.highlight_list.clone()
     }
 
-    pub fn highlight(&mut self, pos: Cell) {
-        self.highlight_list.push(pos);
-    }
+    // pub fn highlight(&mut self, pos: Cell) {
+    //     self.highlight_list.push(pos);
+    // }
 }
 
 #[derive(AsBindGroup, Debug, Clone, Asset, TypePath)]

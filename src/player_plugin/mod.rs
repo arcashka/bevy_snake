@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use crate::field_plugin::{Cell, Field, FieldId};
 use crate::food_plugin::Interactable;
-use input_plugin::{ChangeDirectionRequestedEvent, InputPlugin};
+use input_plugin::{InputPlugin, TurnRequestsBuffer};
 use position::Direction;
 
 #[derive(Component, Clone)]
@@ -199,15 +199,16 @@ fn move_onto_new_cell(
 fn apply_input(
     mut player_query: Query<(&PlayerId, &mut Direction), With<Player>>,
     mut moved_onto_next_cell_events: EventReader<MovedOntoNextCellEvent>,
-    mut turn_requested_events: ResMut<Events<ChangeDirectionRequestedEvent>>,
+    mut turn_requests_buffer: ResMut<TurnRequestsBuffer>,
 ) {
     for new_cell_event in moved_onto_next_cell_events.read() {
         for (player_id, mut direction) in player_query.iter_mut() {
             if new_cell_event.player_id != *player_id {
                 continue;
             }
-            for turn_requested_event in turn_requested_events.drain() {
-                *direction = turn_requested_event.new_direction;
+            let turn_request = turn_requests_buffer.pop();
+            if let Some(turn_request) = turn_request {
+                *direction = turn_request;
             }
         }
     }
@@ -311,12 +312,13 @@ impl Plugin for PlayerPlugin {
                 FixedUpdate,
                 (
                     make_step,
-                    position_fragments.after(make_step),
-                    move_onto_new_cell.before(position_fragments),
-                    grow_snake_on_feeding.before(position_fragments),
-                    apply_input.after(make_step),
-                    check_collision.after(make_step),
-                ),
+                    move_onto_new_cell,
+                    check_collision,
+                    grow_snake_on_feeding,
+                    apply_input,
+                    position_fragments,
+                )
+                    .chain(),
             );
     }
 }
