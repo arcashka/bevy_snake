@@ -45,25 +45,6 @@ pub struct CollisionEvent {
     pub other: Entity,
 }
 
-impl Cell {
-    pub fn direction(&self, &other: &Self) -> Direction {
-        let grad = self.pos - other.pos;
-        if grad.x == 1 && grad.y == 0 {
-            return Direction::Right;
-        }
-        if grad.x == -1 && grad.y == 0 {
-            return Direction::Left;
-        }
-        if grad.x == 0 && grad.y == 1 {
-            return Direction::Up;
-        }
-        if grad.x == 0 && grad.y == -1 {
-            return Direction::Down;
-        }
-        panic!("Unknown direction: {:?}", grad);
-    }
-}
-
 const SNAKE_HEAD_INDEX: usize = 0;
 
 fn setup(mut commands: Commands, settings: Res<PlayerSettings>) {
@@ -267,7 +248,7 @@ fn grow_snake_on_feeding(
                 let tail_direction = if fragments.len() > 1 {
                     let last = fragments[0].2;
                     let pre_last = fragments[1].2;
-                    last.direction(pre_last)
+                    field.direction(last, pre_last)
                 } else {
                     *direction
                 };
