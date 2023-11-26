@@ -280,6 +280,8 @@ fn grow_snake_on_feeding(
                     SpriteBundle {
                         transform: Transform {
                             scale: Vec3::new(30.0, 30.0, 0.0),
+                            // hide behind the field, correct position will be set in position_fragments
+                            translation: Vec3::new(0.0, 0.0, -1.0),
                             ..default()
                         },
                         sprite: Sprite {
@@ -315,8 +317,8 @@ impl Plugin for PlayerPlugin {
                     move_onto_new_cell,
                     check_collision,
                     grow_snake_on_feeding,
-                    apply_input,
                     position_fragments,
+                    apply_input,
                 )
                     .chain(),
             );
