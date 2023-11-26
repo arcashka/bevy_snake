@@ -36,7 +36,10 @@ impl TurnRequestsBuffer {
     }
 
     pub fn push(&mut self, direction: super::Direction) {
-        self.buffer.push_back(direction)
+        self.buffer.push_back(direction);
+        while self.buffer.len() > 2 {
+            self.buffer.pop_front();
+        }
     }
 
     fn new() -> Self {

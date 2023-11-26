@@ -187,8 +187,10 @@ fn apply_input(
             if new_cell_event.player_id != *player_id {
                 continue;
             }
+            info!("looking for turn request");
             let turn_request = turn_requests_buffer.pop();
             if let Some(turn_request) = turn_request {
+                info!("got turn request {:?}", turn_request);
                 *direction = turn_request;
             }
         }

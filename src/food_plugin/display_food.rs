@@ -148,7 +148,6 @@ fn next_frame(
 ) {
     for (indices, mut current_index, mut sprite, mut timer) in &mut query {
         timer.tick(time.delta());
-        info!("current_index: {:?}", current_index.0);
         if timer.just_finished() {
             if current_index.0 == indices.len() - 1 {
                 current_index.0 = 0;

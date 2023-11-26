@@ -46,7 +46,6 @@ fn handle_collision(
     mut events: EventReader<CollisionEvent>,
 ) {
     for event in events.read() {
-        info!("collision: {:?}", event);
         for food in query.iter() {
             if event.other == food {
                 commands.entity(food).despawn();
