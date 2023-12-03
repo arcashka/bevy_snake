@@ -40,20 +40,11 @@ impl Field {
                 x
             }
         }
-        Cell::new(wrap(i, self.dimensions().x), wrap(j, self.dimensions().y))
+        Cell::new(wrap(i, self.dimensions.x), wrap(j, self.dimensions.y))
     }
 
     pub fn single_step_into(&self, from: &Cell, direction: &Direction) -> Cell {
         self.step_into(from, direction, 1)
-    }
-
-    pub fn translation_of_position(&self, position: &Cell) -> Vec2 {
-        let bottom_left = self.bottom_left();
-        let cell_size = self.cell_size();
-
-        let x = bottom_left.x + (position.i() as f32 * cell_size) + (cell_size / 2.0);
-        let y = bottom_left.y + (position.j() as f32 * cell_size) + (cell_size / 2.0);
-        Vec2::new(x, y)
     }
 
     pub fn direction(&self, l: &Cell, r: &Cell) -> Direction {
@@ -75,7 +66,7 @@ impl Field {
 
     fn grad(&self, l: &Cell, r: &Cell) -> IVec2 {
         let mut dx = l.pos.x - r.pos.x;
-        let dimensions = self.dimensions();
+        let dimensions = self.dimensions;
         if dx.abs() == dimensions.x - 1 {
             dx /= -(dimensions.x - 1);
         }
@@ -85,22 +76,13 @@ impl Field {
         }
         IVec2 { x: dx, y: dy }
     }
-
-    fn bottom_left(&self) -> Vec2 {
-        let (h, w) = self.size().into();
-        let bootom_left_x = -w / 2.0;
-        let bootom_left_y = -h / 2.0;
-        Vec2::new(bootom_left_x, bootom_left_y)
-    }
 }
 
 #[test]
 fn test_direction() {
-    let field = Field::new(
-        IVec2 { x: 5, y: 5 },
-        Vec2::default(),
-        Vec2 { x: 100.0, y: 100.0 },
-    );
+    let field = Field {
+        dimensions: IVec2 { x: 5, y: 5 },
+    };
     let cell1 = Cell::new(0, 0);
     let cell2 = Cell::new(1, 0);
 
@@ -123,11 +105,9 @@ fn test_direction() {
 #[test]
 #[should_panic(expected = "Unknown direction")]
 fn test_direction_panic() {
-    let field = Field::new(
-        IVec2 { x: 5, y: 5 },
-        Vec2::default(),
-        Vec2 { x: 100.0, y: 100.0 },
-    );
+    let field = Field {
+        dimensions: IVec2 { x: 5, y: 5 },
+    };
     let cell1 = Cell::new(0, 7);
     let cell2 = Cell::new(2, 0); // Same cell, direction unknown
 

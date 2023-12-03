@@ -47,31 +47,40 @@ pub struct CollisionEvent {
 
 const SNAKE_HEAD_INDEX: usize = 0;
 
-fn setup(mut commands: Commands, settings: Res<PlayerSettings>) {
-    commands.spawn((
-        Player,
-        FieldId(0),
-        PlayerId(0),
-        Direction::Right,
-        ProgressTowardsNextCell(0.0),
-    ));
-    commands.spawn((
-        Fragment,
-        SpriteBundle {
-            transform: Transform {
-                scale: Vec3::new(30.0, 30.0, 0.0),
-                ..default()
-            },
-            sprite: Sprite {
-                color: Color::rgb(0.21, 0.73, 0.21),
-                ..default()
-            },
-            ..default()
-        },
-        PlayerId(0),
-        settings.starting_position,
-        FragmentNumber(0),
-    ));
+fn setup(
+    mut commands: Commands,
+    field_query: Query<(Entity, &FieldId), With<Field>>,
+    settings: Res<PlayerSettings>,
+) {
+    for (field_entity, field_id) in field_query.iter() {
+        if field_id.0 != 0 {
+            continue;
+        }
+        commands.spawn((
+            Player,
+            FieldId(0),
+            PlayerId(0),
+            Direction::Right,
+            ProgressTowardsNextCell(0.0),
+        ));
+        let entity = commands
+            .spawn((
+                Fragment,
+                SpriteBundle {
+                    transform: Transform { ..default() },
+                    sprite: Sprite {
+                        color: Color::rgb(0.21, 0.73, 0.21),
+                        ..default()
+                    },
+                    ..default()
+                },
+                PlayerId(0),
+                settings.starting_position,
+                FragmentNumber(0),
+            ))
+            .id();
+        commands.entity(field_entity).push_children(&[entity]);
+    }
 }
 
 fn position_fragments(
@@ -102,11 +111,18 @@ fn position_fragments(
                 } else {
                     field.single_step_into(cell, direction)
                 };
-                let base_translation = field.translation_of_position(cell).extend(1.0);
-                let next_cell_translation = field.translation_of_position(&next_cell).extend(1.0);
+                let base_translation = Vec2 {
+                    x: cell.i() as f32,
+                    y: cell.j() as f32,
+                };
+                let next_cell_translation = Vec2 {
+                    x: next_cell.i() as f32,
+                    y: next_cell.j() as f32,
+                };
                 let (_, _, _, ref mut transform) = &mut fragments[i];
-                transform.translation =
-                    base_translation * (1.0 - progress.0) + next_cell_translation * progress.0;
+                transform.translation = (base_translation * (1.0 - progress.0)
+                    + next_cell_translation * progress.0)
+                    .extend(1.0);
             }
         }
     }
@@ -224,7 +240,7 @@ fn check_collision(
 fn grow_snake_on_feeding(
     player_query: Query<(&PlayerId, &FieldId, &Direction), With<Player>>,
     fragments_query: Query<(&PlayerId, &FragmentNumber, &Cell), With<Fragment>>,
-    field_query: Query<(&Field, &FieldId)>,
+    field_query: Query<(Entity, &Field, &FieldId)>,
     mut collision_events: EventReader<CollisionEvent>,
     mut commands: Commands,
 ) {
@@ -243,7 +259,7 @@ fn grow_snake_on_feeding(
             if collision_event.player != *player_id {
                 continue;
             }
-            for (field, field_id) in field_query.iter() {
+            for (field_entity, field, field_id) in field_query.iter() {
                 if player_field_id != field_id {
                     continue;
                 }
@@ -258,25 +274,29 @@ fn grow_snake_on_feeding(
                 let tail_number = fragments[0].1;
                 let new_number = FragmentNumber(tail_number.0 + 1);
                 let new_cell = field.single_step_into(tail, &tail_direction.opposite());
-                commands.spawn((
-                    Fragment,
-                    SpriteBundle {
-                        transform: Transform {
-                            scale: Vec3::new(30.0, 30.0, 0.0),
-                            // hide behind the field, correct position will be set in position_fragments
-                            translation: Vec3::new(0.0, 0.0, -1.0),
+                let new_fragment_entity = commands
+                    .spawn((
+                        Fragment,
+                        SpriteBundle {
+                            transform: Transform {
+                                // hide behind the field, correct position will be set in position_fragments
+                                translation: Vec3::new(0.0, 0.0, -1.0),
+                                ..default()
+                            },
+                            sprite: Sprite {
+                                color: Color::rgb(1.0, 0.73, 0.85),
+                                ..default()
+                            },
                             ..default()
                         },
-                        sprite: Sprite {
-                            color: Color::rgb(1.0, 0.73, 0.85),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    *player_id,
-                    new_cell,
-                    new_number,
-                ));
+                        *player_id,
+                        new_cell,
+                        new_number,
+                    ))
+                    .id();
+                commands
+                    .entity(field_entity)
+                    .push_children(&[new_fragment_entity]);
             }
         }
     }

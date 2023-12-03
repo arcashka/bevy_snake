@@ -1,18 +1,21 @@
-mod field;
 mod material;
 
-pub use field::Field;
 pub use material::FieldMaterial;
 pub use material::HighlightComponent;
 
 use bevy::{
     prelude::*,
-    sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::{Material2dPlugin, MaterialMesh2dBundle},
     window::WindowResized,
 };
 
 pub struct FieldPlugin {
     settings: FieldSettings,
+}
+
+#[derive(Component)]
+pub struct Field {
+    pub dimensions: IVec2,
 }
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
@@ -56,25 +59,23 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
     let window = windows.single();
-    let field = Field::new(
-        settings.dimensions,
-        settings.offset,
-        Vec2 {
-            x: window.width(),
-            y: window.height(),
-        },
-    );
+    let dim = settings.dimensions;
+    let scale = (window.width() / dim.x as f32).min(window.height() / dim.y as f32);
+
+    let field = Field { dimensions: dim };
 
     let texture_handle = asset_server.load("background_sky.jpg");
-    let mesh = Mesh::from(shape::Quad::new(field.size()));
-    let mesh_handle = meshes.add(mesh);
-    let material = FieldMaterial::new(field.dimensions(), Some(texture_handle));
+    let material = FieldMaterial::new(settings.dimensions, Some(texture_handle));
     let material_handle = materials.add(material);
+
+    let mesh = Mesh::from(shape::Quad::new(dim.as_vec2()));
+    let mesh_handle = meshes.add(mesh);
     commands.spawn((
         MaterialMesh2dBundle {
             material: material_handle,
             mesh: mesh_handle.into(),
-            transform: Transform::from_translation(field.translation().extend(0.0)),
+            transform: Transform::from_translation(settings.offset.extend(0.0))
+                .with_scale(Vec3::splat(scale)),
             ..default()
         },
         field,
@@ -97,16 +98,13 @@ fn on_highlight_changed(
 
 fn resize_listener(
     mut resize_events: EventReader<WindowResized>,
-    mut query: Query<(&Mesh2dHandle, &mut Field)>,
-    mut meshes: ResMut<Assets<Mesh>>,
+    mut query: Query<(&mut Transform, &Field)>,
 ) {
     for event in resize_events.read() {
-        for (mesh_handle, mut field) in query.iter_mut() {
-            let new_size = Vec2::new(event.width, event.height);
-            field.resize(new_size);
-            if let Some(mesh) = meshes.get_mut(&mesh_handle.0) {
-                *mesh = Mesh::from(shape::Quad::new(field.size()));
-            }
+        for (mut transform, field) in query.iter_mut() {
+            let dim = field.dimensions;
+            let scale = (event.width / dim.x as f32).min(event.height / dim.y as f32);
+            transform.scale = Vec3::splat(scale);
         }
     }
 }

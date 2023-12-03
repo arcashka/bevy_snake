@@ -63,8 +63,8 @@ fn spawn_food(
     for (field, field_id) in query.iter() {
         if timer.0.tick(time.delta()).just_finished() {
             let mut rng = thread_rng();
-            let i = rng.gen_range(0..field.dimensions().x);
-            let j = rng.gen_range(0..field.dimensions().y);
+            let i = rng.gen_range(0..field.dimensions.x);
+            let j = rng.gen_range(0..field.dimensions.y);
 
             commands.spawn((
                 Food,

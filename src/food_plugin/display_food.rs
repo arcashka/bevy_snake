@@ -89,7 +89,7 @@ type FoodWithoutSprite = (With<Food>, Without<TextureAtlasSprite>);
 fn draw_food(
     mut commands: Commands,
     query: Query<(Entity, &FoodType, &Cell, &FieldId), FoodWithoutSprite>,
-    field_query: Query<(&Field, &FieldId)>,
+    field_query: Query<(Entity, &FieldId), With<Field>>,
     image_assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut food_storage: ResMut<FoodStorage>,
@@ -105,31 +105,39 @@ fn draw_food(
         };
 
         let first_index = food_asset.indices.indices[0];
-        for (field, field_id) in field_query.iter() {
+        for (field_entity, field_id) in field_query.iter() {
             if food_field_id != field_id {
                 continue;
             }
-            let translation = field.translation_of_position(cell);
+            let translation = Vec2 {
+                x: cell.i() as f32,
+                y: cell.j() as f32,
+            };
+            info!("Adding food at {:?}", translation);
             let sprite_sheet = SpriteSheetBundle {
                 texture_atlas: food_asset.texture.clone(),
                 sprite: TextureAtlasSprite::new(first_index),
                 transform: Transform {
                     translation: translation.extend(1.0),
-                    scale: Vec3::splat(0.5),
+                    scale: Vec3::splat(0.05),
                     ..default()
                 },
                 ..default()
             };
-            if food_asset.indices.len() > 1 {
-                commands.entity(entity).insert((
-                    sprite_sheet,
-                    food_asset.indices.clone(),
-                    AnimationIndex(first_index),
-                    AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
-                ));
+            let food_entity = if food_asset.indices.len() > 1 {
+                commands
+                    .entity(entity)
+                    .insert((
+                        sprite_sheet,
+                        food_asset.indices.clone(),
+                        AnimationIndex(first_index),
+                        AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
+                    ))
+                    .id()
             } else {
-                commands.entity(entity).insert(sprite_sheet);
-            }
+                commands.entity(entity).insert(sprite_sheet).id()
+            };
+            commands.entity(field_entity).push_children(&[food_entity]);
         }
     }
 }
