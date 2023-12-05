@@ -3,6 +3,8 @@ mod material;
 pub use material::FieldMaterial;
 pub use material::HighlightComponent;
 
+use crate::system_sets::GameSystemSets;
+
 use bevy::{
     prelude::*,
     sprite::{Material2dPlugin, MaterialMesh2dBundle},
@@ -57,6 +59,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<FieldMaterial>>,
 ) {
+    info!("creating field");
     commands.spawn(Camera2dBundle::default());
     let window = windows.single();
     let dim = settings.dimensions;
@@ -70,18 +73,21 @@ fn setup(
 
     let mesh = Mesh::from(shape::Quad::new(dim.as_vec2()));
     let mesh_handle = meshes.add(mesh);
-    commands.spawn((
-        MaterialMesh2dBundle {
-            material: material_handle,
-            mesh: mesh_handle.into(),
-            transform: Transform::from_translation(settings.offset.extend(0.0))
-                .with_scale(Vec3::splat(scale)),
-            ..default()
-        },
-        field,
-        HighlightComponent::new(),
-        FieldId(0),
-    ));
+    let field_entity = commands
+        .spawn((
+            MaterialMesh2dBundle {
+                material: material_handle,
+                mesh: mesh_handle.into(),
+                transform: Transform::from_translation(settings.offset.extend(0.0))
+                    .with_scale(Vec3::splat(scale)),
+                ..default()
+            },
+            field,
+            HighlightComponent::new(),
+            FieldId(0),
+        ))
+        .id();
+    info!("field created: {:?}", field_entity);
 }
 
 type HighlightChanged = Or<(Changed<HighlightComponent>, Added<HighlightComponent>)>;
@@ -119,7 +125,7 @@ impl Plugin for FieldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(self.settings)
             .add_plugins(Material2dPlugin::<FieldMaterial>::default())
-            .add_systems(Startup, setup)
+            .add_systems(Startup, setup.in_set(GameSystemSets::FieldSetup))
             .add_systems(FixedUpdate, (resize_listener, on_highlight_changed));
     }
 }

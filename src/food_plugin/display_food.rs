@@ -18,6 +18,7 @@ struct AnimationTimer(Timer);
 
 struct FoodAsset {
     texture: Handle<TextureAtlas>,
+    texture_size: Vec2,
     indices: AnimationIndices,
 }
 
@@ -76,9 +77,11 @@ fn get_food_asset(
         None,
         None,
     );
+    let texture_size = texture_atlas.size;
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
     FoodAsset {
         texture: texture_atlas_handle.clone(),
+        texture_size,
         indices: AnimationIndices {
             indices: texture_info.animation_indices.clone(),
         },
@@ -89,7 +92,7 @@ type FoodWithoutSprite = (With<Food>, Without<TextureAtlasSprite>);
 fn draw_food(
     mut commands: Commands,
     query: Query<(Entity, &FoodType, &Cell, &FieldId), FoodWithoutSprite>,
-    field_query: Query<(Entity, &FieldId), With<Field>>,
+    field_query: Query<(Entity, &FieldId, &Field)>,
     image_assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut food_storage: ResMut<FoodStorage>,
@@ -105,21 +108,23 @@ fn draw_food(
         };
 
         let first_index = food_asset.indices.indices[0];
-        for (field_entity, field_id) in field_query.iter() {
+        for (field_entity, field_id, field) in field_query.iter() {
             if food_field_id != field_id {
                 continue;
             }
             let translation = Vec2 {
-                x: cell.i() as f32,
-                y: cell.j() as f32,
+                x: cell.i() as f32 - field.dimensions.x as f32 / 2.0,
+                y: cell.j() as f32 - field.dimensions.y as f32 / 2.0,
             };
             info!("Adding food at {:?}", translation);
+            let scale_factor =
+                (1.0 / food_asset.texture_size.x).min(1.0 / food_asset.texture_size.y);
             let sprite_sheet = SpriteSheetBundle {
                 texture_atlas: food_asset.texture.clone(),
                 sprite: TextureAtlasSprite::new(first_index),
                 transform: Transform {
                     translation: translation.extend(1.0),
-                    scale: Vec3::splat(0.05),
+                    scale: Vec3::splat(scale_factor),
                     ..default()
                 },
                 ..default()
