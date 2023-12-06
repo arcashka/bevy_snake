@@ -13,7 +13,7 @@ use bevy::prelude::*;
 fn main() {
     App::new()
         .configure_sets(
-            Update,
+            Startup,
             GameSystemSets::PlayerSetup.after(GameSystemSets::FieldSetup),
         )
         .add_plugins((

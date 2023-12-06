@@ -59,7 +59,6 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<FieldMaterial>>,
 ) {
-    info!("creating field");
     commands.spawn(Camera2dBundle::default());
     let window = windows.single();
     let dim = settings.dimensions;
@@ -125,7 +124,14 @@ impl Plugin for FieldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(self.settings)
             .add_plugins(Material2dPlugin::<FieldMaterial>::default())
-            .add_systems(Startup, setup.in_set(GameSystemSets::FieldSetup))
+            .add_systems(
+                Startup,
+                (
+                    setup.in_set(GameSystemSets::FieldSetup),
+                    apply_deferred.in_set(GameSystemSets::FieldSetup),
+                )
+                    .chain(),
+            )
             .add_systems(FixedUpdate, (resize_listener, on_highlight_changed));
     }
 }

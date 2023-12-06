@@ -49,18 +49,12 @@ pub struct CollisionEvent {
 
 const SNAKE_HEAD_INDEX: usize = 0;
 
-fn setup(mut commands: Commands, field_query: Query<Entity>, settings: Res<PlayerSettings>) {
-    info!("creating player");
+fn setup(
+    mut commands: Commands,
+    field_query: Query<Entity, With<Field>>,
+    settings: Res<PlayerSettings>,
+) {
     for field_entity in field_query.iter() {
-        info!("got entity: {:?}", field_entity);
-    }
-    return;
-    for field_entity in field_query.iter() {
-        info!("got entity: {:?}", field_entity);
-        //info!("Got field {}", field_id.0);
-        //if field_id.0 != 0 {
-        //    continue;
-        //}
         commands.spawn((
             Player,
             FieldId(0),
@@ -95,7 +89,6 @@ fn position_fragments(
     field_query: Query<(&Field, &FieldId)>,
 ) {
     for (player_id, direction, player_field_id, progress) in player_query.iter() {
-        info!("player: {}", player_id.0);
         for (field, field_id) in field_query.iter() {
             if player_field_id != field_id {
                 continue;
@@ -110,7 +103,6 @@ fn position_fragments(
                 let r_number = r.1;
                 l_number.cmp(r_number)
             });
-            info!("fragments: {}", fragments.len());
             for i in 0..fragments.len() {
                 let (_, _, cell, _) = fragments[i];
                 let next_cell = if i > SNAKE_HEAD_INDEX {
@@ -131,7 +123,6 @@ fn position_fragments(
                 transform.translation = (base_translation * (1.0 - progress.0)
                     + next_cell_translation * progress.0)
                     .extend(1.0);
-                info!("Translation: {:?}", transform.translation);
             }
         }
     }
@@ -212,10 +203,8 @@ fn apply_input(
             if new_cell_event.player_id != *player_id {
                 continue;
             }
-            info!("looking for turn request");
             let turn_request = turn_requests_buffer.pop();
             if let Some(turn_request) = turn_request {
-                info!("got turn request {:?}", turn_request);
                 *direction = turn_request;
             }
         }
