@@ -111,14 +111,8 @@ fn position_fragments(
                 } else {
                     field.single_step_into(cell, direction)
                 };
-                let base_translation = Vec2 {
-                    x: cell.i() as f32 - field.dimensions.x as f32 / 2.0,
-                    y: cell.j() as f32 - field.dimensions.y as f32 / 2.0,
-                };
-                let next_cell_translation = Vec2 {
-                    x: next_cell.i() as f32 - field.dimensions.x as f32 / 2.0,
-                    y: next_cell.j() as f32 - field.dimensions.y as f32 / 2.0,
-                };
+                let base_translation = field.translation(cell);
+                let next_cell_translation = field.translation(&next_cell);
                 let (_, _, _, ref mut transform) = &mut fragments[i];
                 transform.translation = (base_translation * (1.0 - progress.0)
                     + next_cell_translation * progress.0)

@@ -1,5 +1,6 @@
 mod material;
 
+use bevy::window::WindowCreated;
 pub use material::FieldMaterial;
 pub use material::HighlightComponent;
 
@@ -18,6 +19,15 @@ pub struct FieldPlugin {
 #[derive(Component)]
 pub struct Field {
     pub dimensions: IVec2,
+}
+
+impl Field {
+    pub fn translation(&self, cell: &Cell) -> Vec2 {
+        Vec2 {
+            x: cell.i() as f32 - self.dimensions.x as f32 / 2.0 + 0.5,
+            y: cell.j() as f32 - self.dimensions.y as f32 / 2.0 + 0.5,
+        }
+    }
 }
 
 #[derive(Component, Clone, Copy, Debug, PartialEq)]
@@ -53,16 +63,15 @@ impl FieldPlugin {
 pub struct FieldId(pub i32);
 fn setup(
     mut commands: Commands,
-    windows: Query<&Window>,
     settings: Res<FieldSettings>,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<FieldMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
-    let window = windows.single();
     let dim = settings.dimensions;
-    let scale = (window.width() / dim.x as f32).min(window.height() / dim.y as f32);
+    let default_size = Vec2::new(800.0, 600.0);
+    let scale = (default_size.x / dim.x as f32).min(default_size.y / dim.y as f32);
 
     let field = Field { dimensions: dim };
 
@@ -89,9 +98,11 @@ fn setup(
     info!("field created: {:?}", field_entity);
 }
 
-type HighlightChanged = Or<(Changed<HighlightComponent>, Added<HighlightComponent>)>;
 fn on_highlight_changed(
-    mut query: Query<(&Handle<FieldMaterial>, &HighlightComponent), HighlightChanged>,
+    mut query: Query<
+        (&Handle<FieldMaterial>, &HighlightComponent),
+        Or<(Changed<HighlightComponent>, Added<HighlightComponent>)>,
+    >,
     mut materials: ResMut<Assets<FieldMaterial>>,
 ) {
     for (field_material_handle, highlight) in query.iter_mut() {
@@ -101,14 +112,33 @@ fn on_highlight_changed(
     }
 }
 
-fn resize_listener(
+fn window_events_listener(
     mut resize_events: EventReader<WindowResized>,
-    mut query: Query<(&mut Transform, &Field)>,
+    mut create_events: EventReader<WindowCreated>,
+    mut field_query: Query<(&mut Transform, &Field)>,
+    window_query: Query<(Entity, &Window)>,
 ) {
-    for event in resize_events.read() {
-        for (mut transform, field) in query.iter_mut() {
+    let mut window_entity = None;
+    for resize_event in resize_events.read() {
+        window_entity = Some(resize_event.window);
+    }
+    if window_entity.is_none() {
+        for create_event in create_events.read() {
+            window_entity = Some(create_event.window);
+        }
+    }
+    if window_entity.is_none() {
+        return;
+    }
+    let window_entity = window_entity.unwrap();
+
+    for (_, window) in window_query
+        .iter()
+        .filter(|(entity, _)| *entity == window_entity)
+    {
+        for (mut transform, field) in field_query.iter_mut() {
             let dim = field.dimensions;
-            let scale = (event.width / dim.x as f32).min(event.height / dim.y as f32);
+            let scale = (window.width() / dim.x as f32).min(window.height() / dim.y as f32);
             transform.scale = Vec3::splat(scale);
         }
     }
@@ -132,6 +162,6 @@ impl Plugin for FieldPlugin {
                 )
                     .chain(),
             )
-            .add_systems(FixedUpdate, (resize_listener, on_highlight_changed));
+            .add_systems(FixedUpdate, (window_events_listener, on_highlight_changed));
     }
 }

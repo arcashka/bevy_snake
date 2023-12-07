@@ -112,10 +112,7 @@ fn draw_food(
             if food_field_id != field_id {
                 continue;
             }
-            let translation = Vec2 {
-                x: cell.i() as f32 - field.dimensions.x as f32 / 2.0,
-                y: cell.j() as f32 - field.dimensions.y as f32 / 2.0,
-            };
+            let translation = field.translation(cell);
             info!("Adding food at {:?}", translation);
             let scale_factor =
                 (1.0 / food_asset.texture_size.x).min(1.0 / food_asset.texture_size.y);
