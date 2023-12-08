@@ -113,7 +113,6 @@ fn draw_food(
                 continue;
             }
             let translation = field.translation(cell);
-            info!("Adding food at {:?}", translation);
             let scale_factor =
                 (1.0 / food_asset.texture_size.x).min(1.0 / food_asset.texture_size.y);
             let sprite_sheet = SpriteSheetBundle {

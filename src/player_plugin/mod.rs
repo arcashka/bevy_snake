@@ -1,5 +1,6 @@
 mod input_plugin;
 mod position;
+mod snake_sprite;
 
 use bevy::prelude::*;
 
@@ -47,36 +48,46 @@ pub struct CollisionEvent {
     pub other: Entity,
 }
 
-const SNAKE_HEAD_INDEX: usize = 0;
+#[derive(Component, PartialEq, Debug)]
+enum FragmentType {
+    Head,
+    Tail,
+    Body,
+    HeadAndTail,
+}
+
+impl FragmentType {
+    fn is_head(&self) -> bool {
+        matches!(self, FragmentType::Head | FragmentType::HeadAndTail)
+    }
+
+    fn is_tail(&self) -> bool {
+        matches!(self, FragmentType::Tail | FragmentType::HeadAndTail)
+    }
+}
 
 fn setup(
     mut commands: Commands,
     field_query: Query<Entity, With<Field>>,
     settings: Res<PlayerSettings>,
+    snake_sprite_sheet: Res<SnakeSpriteSheet>,
 ) {
     for field_entity in field_query.iter() {
         commands.spawn((
             Player,
             FieldId(0),
             PlayerId(0),
-            Direction::Right,
             ProgressTowardsNextCell(0.0),
         ));
         let entity = commands
             .spawn((
                 Fragment,
-                SpriteBundle {
-                    transform: Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)),
-                    sprite: Sprite {
-                        color: Color::rgb(0.21, 0.73, 0.21),
-                        custom_size: Some(Vec2::new(1.0, 1.0)),
-                        ..default()
-                    },
-                    ..default()
-                },
+                FragmentType::HeadAndTail,
+                snake_sprite_sheet.0.clone(),
                 PlayerId(0),
                 settings.starting_position,
                 FragmentNumber(0),
+                Direction::Right,
             ))
             .id();
         commands.entity(field_entity).push_children(&[entity]);
@@ -84,36 +95,22 @@ fn setup(
 }
 
 fn position_fragments(
-    mut fragments_query: Query<(&PlayerId, &FragmentNumber, &Cell, &mut Transform), With<Fragment>>,
-    player_query: Query<(&PlayerId, &Direction, &FieldId, &ProgressTowardsNextCell), With<Player>>,
+    mut fragments_query: Query<(&PlayerId, &Cell, &Direction, &mut Transform), With<Fragment>>,
+    player_query: Query<(&PlayerId, &FieldId, &ProgressTowardsNextCell), With<Player>>,
     field_query: Query<(&Field, &FieldId)>,
 ) {
-    for (player_id, direction, player_field_id, progress) in player_query.iter() {
+    for (player_id, player_field_id, progress) in player_query.iter() {
         for (field, field_id) in field_query.iter() {
             if player_field_id != field_id {
                 continue;
             }
-            let mut fragments = fragments_query
-                .iter_mut()
-                .filter(|(fragment_player_id, _, _, _)| *fragment_player_id == player_id)
-                .collect::<Vec<_>>();
-
-            fragments.sort_by(|l, r| {
-                let l_number = l.1;
-                let r_number = r.1;
-                l_number.cmp(r_number)
-            });
-            for i in 0..fragments.len() {
-                let (_, _, cell, _) = fragments[i];
-                let next_cell = if i > SNAKE_HEAD_INDEX {
-                    let (_, _, next_fragment_cell, _) = fragments[i - 1];
-                    *next_fragment_cell
-                } else {
-                    field.single_step_into(cell, direction)
-                };
+            for (fragment_player_id, cell, direction, mut transform) in fragments_query.iter_mut() {
+                if player_id != fragment_player_id {
+                    continue;
+                }
+                let next_cell = field.single_step_into(cell, direction);
                 let base_translation = field.translation(cell);
                 let next_cell_translation = field.translation(&next_cell);
-                let (_, _, _, ref mut transform) = &mut fragments[i];
                 transform.translation = (base_translation * (1.0 - progress.0)
                     + next_cell_translation * progress.0)
                     .extend(1.0);
@@ -140,14 +137,14 @@ fn make_step(
 }
 
 fn move_onto_new_cell(
-    mut fragments_query: Query<(&PlayerId, &FragmentNumber, &mut Cell), With<Fragment>>,
-    player_query: Query<(&PlayerId, &FieldId, &Direction), With<Player>>,
+    mut fragments_query: Query<(&PlayerId, &Direction, &FragmentType, &mut Cell), With<Fragment>>,
+    player_query: Query<(&PlayerId, &FieldId), With<Player>>,
     field_query: Query<(&Field, &FieldId)>,
     mut should_move_onto_new_cell_events: EventReader<ShouldMoveOntoNextCellEvent>,
     mut moved_onto_new_cell_events: EventWriter<MovedOntoNextCellEvent>,
 ) {
     for event in should_move_onto_new_cell_events.read() {
-        for (player_id, player_field_id, direction) in player_query.iter() {
+        for (player_id, player_field_id) in player_query.iter() {
             if event.player_id != *player_id {
                 continue;
             }
@@ -155,30 +152,19 @@ fn move_onto_new_cell(
                 if player_field_id != field_id {
                     continue;
                 }
-                let mut fragments = fragments_query
-                    .iter_mut()
-                    .filter(|(fragment_player_id, _, _)| *fragment_player_id == player_id)
-                    .collect::<Vec<_>>();
+                for (fragment_player_id, direction, fragment_type, mut cell) in
+                    fragments_query.iter_mut()
+                {
+                    if player_id != fragment_player_id {
+                        continue;
+                    }
 
-                fragments.sort_by(|l, r| {
-                    let l_number = l.1;
-                    let r_number = r.1;
-                    r_number.cmp(l_number)
-                });
-                for i in 0..fragments.len() {
-                    let (_, number, cell) = &mut fragments[i];
-                    let next_cell = if number.0 == SNAKE_HEAD_INDEX {
-                        field.single_step_into(cell, direction)
-                    } else {
-                        let (_, _, next_fragment_cell) = &fragments[i + 1];
-                        **next_fragment_cell
-                    };
-                    let (_, number, ref mut cell) = fragments[i];
-                    **cell = next_cell;
-                    if number.0 == 0 {
+                    info!("fragment: {:?} goes from {:?}", fragment_type, cell);
+                    *cell = field.single_step_into(&cell, direction);
+                    if fragment_type.is_head() {
                         moved_onto_new_cell_events.send(MovedOntoNextCellEvent {
                             player_id: *player_id,
-                            cell: next_cell,
+                            cell: *cell,
                         })
                     }
                 }
@@ -187,19 +173,53 @@ fn move_onto_new_cell(
     }
 }
 
-fn apply_input(
-    mut player_query: Query<(&PlayerId, &mut Direction), With<Player>>,
-    mut moved_onto_next_cell_events: EventReader<MovedOntoNextCellEvent>,
+fn update_direction(
+    player_query: Query<(&PlayerId, &FieldId), With<Player>>,
+    field_query: Query<&FieldId, With<Field>>,
+    mut fragments_query: Query<
+        (&PlayerId, &FragmentNumber, &FragmentType, &mut Direction),
+        With<Fragment>,
+    >,
     mut turn_requests_buffer: ResMut<TurnRequestsBuffer>,
+    mut moved_onto_new_cell_events: EventReader<MovedOntoNextCellEvent>,
 ) {
-    for new_cell_event in moved_onto_next_cell_events.read() {
-        for (player_id, mut direction) in player_query.iter_mut() {
-            if new_cell_event.player_id != *player_id {
-                continue;
-            }
-            let turn_request = turn_requests_buffer.pop();
-            if let Some(turn_request) = turn_request {
-                *direction = turn_request;
+    for event in moved_onto_new_cell_events.read() {
+        info!("a");
+        for field_id in field_query.iter() {
+            info!("b");
+            for (player_id, player_field_id) in player_query.iter() {
+                info!("c");
+                if event.player_id != *player_id {
+                    continue;
+                }
+                if field_id != player_field_id {
+                    continue;
+                }
+                let mut fragments = fragments_query
+                    .iter_mut()
+                    .filter(|(fragment_player_id, _, _, _)| *fragment_player_id == player_id)
+                    .collect::<Vec<_>>();
+
+                fragments.sort_by(|l, r| {
+                    let l_number = l.1;
+                    let r_number = r.1;
+                    r_number.cmp(l_number)
+                });
+                let fragments_len = fragments.len();
+                for i in 0..fragments_len - 1 {
+                    let (_, _, _, next_fragment_direction) = &fragments[i + 1];
+                    let next_fragment_direction = **next_fragment_direction;
+                    let (_, _, _, ref mut direction) = fragments[i];
+                    **direction = next_fragment_direction;
+                }
+                let (_, _, _, ref mut head_direction) = fragments[fragments_len - 1];
+                let turn_request = turn_requests_buffer.pop();
+                let new_direction = if let Some(turn_request) = turn_request {
+                    turn_request
+                } else {
+                    **head_direction
+                };
+                **head_direction = new_direction;
             }
         }
     }
@@ -230,24 +250,23 @@ fn check_collision(
 }
 
 fn grow_snake_on_feeding(
-    player_query: Query<(&PlayerId, &FieldId, &Direction), With<Player>>,
-    fragments_query: Query<(&PlayerId, &FragmentNumber, &Cell), With<Fragment>>,
+    player_query: Query<(&PlayerId, &FieldId), With<Player>>,
     field_query: Query<(Entity, &Field, &FieldId)>,
+    mut fragments_query: Query<
+        (
+            &PlayerId,
+            &FragmentNumber,
+            &Cell,
+            &mut FragmentType,
+            &Direction,
+        ),
+        With<Fragment>,
+    >,
     mut collision_events: EventReader<CollisionEvent>,
     mut commands: Commands,
 ) {
     for collision_event in collision_events.read() {
-        let mut fragments = fragments_query
-            .iter()
-            .filter(|(fragment_player_id, _, _)| **fragment_player_id == collision_event.player)
-            .collect::<Vec<_>>();
-
-        fragments.sort_by(|l, r| {
-            let l_number = l.1;
-            let r_number = r.1;
-            r_number.cmp(l_number)
-        });
-        for (player_id, player_field_id, direction) in player_query.iter() {
+        for (player_id, player_field_id) in player_query.iter() {
             if collision_event.player != *player_id {
                 continue;
             }
@@ -255,43 +274,75 @@ fn grow_snake_on_feeding(
                 if player_field_id != field_id {
                     continue;
                 }
-                let tail_direction = if fragments.len() > 1 {
-                    let last = fragments[0].2;
-                    let pre_last = fragments[1].2;
-                    field.direction(last, pre_last)
-                } else {
-                    *direction
-                };
-                let tail = fragments[0].2;
-                let tail_number = fragments[0].1;
-                let new_number = FragmentNumber(tail_number.0 + 1);
-                let new_cell = field.single_step_into(tail, &tail_direction.opposite());
-                let new_fragment_entity = commands
-                    .spawn((
-                        Fragment,
-                        SpriteBundle {
-                            transform: Transform {
-                                // hide behind the field, correct position will be set in position_fragments
-                                translation: Vec3::new(0.0, 0.0, -1.0),
+                for (fragment_player_id, fragment_number, cell, mut fragment_type, direction) in
+                    fragments_query.iter_mut()
+                {
+                    if collision_event.player != *fragment_player_id {
+                        continue;
+                    }
+
+                    if !fragment_type.is_tail() {
+                        continue;
+                    }
+
+                    let new_fragment_entity = commands
+                        .spawn((
+                            Fragment,
+                            FragmentType::Tail,
+                            SpriteBundle {
+                                transform: Transform {
+                                    // hide behind the field, correct position will be set in position_fragments
+                                    translation: Vec3::new(0.0, 0.0, -1.0),
+                                    ..default()
+                                },
+                                sprite: Sprite {
+                                    color: Color::rgb(1.0, 0.73, 0.85),
+                                    ..default()
+                                },
                                 ..default()
                             },
-                            sprite: Sprite {
-                                color: Color::rgb(1.0, 0.73, 0.85),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                        *player_id,
-                        new_cell,
-                        new_number,
-                    ))
-                    .id();
-                commands
-                    .entity(field_entity)
-                    .push_children(&[new_fragment_entity]);
+                            *player_id,
+                            field.single_step_into(cell, &direction.opposite()),
+                            FragmentNumber(fragment_number.0 + 1),
+                            *direction,
+                        ))
+                        .id();
+                    commands
+                        .entity(field_entity)
+                        .push_children(&[new_fragment_entity]);
+
+                    if *fragment_type == FragmentType::HeadAndTail {
+                        *fragment_type = FragmentType::Head;
+                    } else {
+                        *fragment_type = FragmentType::Body;
+                    }
+                }
             }
         }
     }
+}
+
+#[derive(Resource)]
+struct SnakeSpriteSheet(SpriteSheetBundle);
+
+fn init_snake_sprite_sheet(
+    image_assets: Res<AssetServer>,
+    mut sprite_sheet: ResMut<SnakeSpriteSheet>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+) {
+    let texture_handle = image_assets.load("snake.png");
+    let texture_atlas =
+        TextureAtlas::from_grid(texture_handle, Vec2::new(64.0, 64.0), 5, 4, None, None);
+    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+    sprite_sheet.0 = SpriteSheetBundle {
+        sprite: TextureAtlasSprite {
+            index: 4,
+            custom_size: Some(Vec2::new(1.0, 1.0)),
+            ..default()
+        },
+        texture_atlas: texture_atlas_handle,
+        ..default()
+    };
 }
 
 pub struct PlayerPlugin;
@@ -301,21 +352,29 @@ impl Plugin for PlayerPlugin {
             .insert_resource(PlayerSettings {
                 starting_position: Cell::new(0, 0),
             })
+            .insert_resource(SnakeSpriteSheet(SpriteSheetBundle::default()))
             .add_event::<ShouldMoveOntoNextCellEvent>()
             .add_event::<MovedOntoNextCellEvent>()
             .add_event::<CollisionEvent>()
-            .add_systems(Startup, setup.in_set(GameSystemSets::PlayerSetup))
+            .add_systems(
+                Startup,
+                (
+                    init_snake_sprite_sheet.in_set(GameSystemSets::PlayerSetup),
+                    setup
+                        .in_set(GameSystemSets::PlayerSetup)
+                        .after(init_snake_sprite_sheet),
+                ),
+            )
             .add_systems(
                 FixedUpdate,
                 (
                     make_step,
-                    move_onto_new_cell,
-                    check_collision,
-                    grow_snake_on_feeding,
-                    position_fragments,
-                    apply_input,
-                )
-                    .chain(),
+                    move_onto_new_cell.after(make_step),
+                    check_collision.after(move_onto_new_cell),
+                    grow_snake_on_feeding.after(check_collision),
+                    update_direction.after(move_onto_new_cell),
+                    position_fragments.after(move_onto_new_cell),
+                ),
             );
     }
 }
