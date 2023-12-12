@@ -1,6 +1,6 @@
 mod input_plugin;
 mod position;
-mod snake_sprite;
+mod sprites;
 
 use bevy::prelude::*;
 
@@ -20,6 +20,7 @@ struct Fragment;
 #[derive(Resource, Clone)]
 struct PlayerSettings {
     starting_position: Cell,
+    speed: f32,
 }
 
 #[derive(Component, Clone, Copy, Debug)]
@@ -27,6 +28,9 @@ struct ProgressTowardsNextCell(f32);
 
 #[derive(Component, Clone, Copy, Deref, DerefMut, PartialEq, Debug)]
 pub struct PlayerId(i32);
+
+#[derive(Component)]
+struct Speed(f32);
 
 #[derive(Component, Clone, Copy, Deref, DerefMut, Eq, PartialEq, PartialOrd, Ord)]
 struct FragmentNumber(usize);
@@ -70,7 +74,7 @@ fn setup(
     mut commands: Commands,
     field_query: Query<Entity, With<Field>>,
     settings: Res<PlayerSettings>,
-    snake_sprite_sheet: Res<SnakeSpriteSheet>,
+    snake_sprite_sheet: Res<sprites::SnakeSpriteSheet>,
 ) {
     for field_entity in field_query.iter() {
         commands.spawn((
@@ -78,6 +82,7 @@ fn setup(
             FieldId(0),
             PlayerId(0),
             ProgressTowardsNextCell(0.0),
+            Speed(settings.speed),
         ));
         let entity = commands
             .spawn((
@@ -121,11 +126,11 @@ fn position_fragments(
 
 fn make_step(
     time: Res<Time>,
-    mut query: Query<(&PlayerId, &mut ProgressTowardsNextCell), With<Player>>,
+    mut query: Query<(&PlayerId, &Speed, &mut ProgressTowardsNextCell), With<Player>>,
     mut stepped_on_new_cell_events: EventWriter<ShouldMoveOntoNextCellEvent>,
 ) {
-    for (player_id, mut progress) in query.iter_mut() {
-        let step = time.delta_seconds() * 5.0;
+    for (player_id, speed, mut progress) in query.iter_mut() {
+        let step = time.delta_seconds() * speed.0;
         progress.0 += step;
         if progress.0 >= 1.0 {
             stepped_on_new_cell_events.send(ShouldMoveOntoNextCellEvent {
@@ -159,7 +164,6 @@ fn move_onto_new_cell(
                         continue;
                     }
 
-                    info!("fragment: {:?} goes from {:?}", fragment_type, cell);
                     *cell = field.single_step_into(&cell, direction);
                     if fragment_type.is_head() {
                         moved_onto_new_cell_events.send(MovedOntoNextCellEvent {
@@ -184,11 +188,8 @@ fn update_direction(
     mut moved_onto_new_cell_events: EventReader<MovedOntoNextCellEvent>,
 ) {
     for event in moved_onto_new_cell_events.read() {
-        info!("a");
         for field_id in field_query.iter() {
-            info!("b");
             for (player_id, player_field_id) in player_query.iter() {
-                info!("c");
                 if event.player_id != *player_id {
                     continue;
                 }
@@ -264,6 +265,7 @@ fn grow_snake_on_feeding(
     >,
     mut collision_events: EventReader<CollisionEvent>,
     mut commands: Commands,
+    snake_sprite_sheet: Res<sprites::SnakeSpriteSheet>,
 ) {
     for collision_event in collision_events.read() {
         for (player_id, player_field_id) in player_query.iter() {
@@ -289,18 +291,7 @@ fn grow_snake_on_feeding(
                         .spawn((
                             Fragment,
                             FragmentType::Tail,
-                            SpriteBundle {
-                                transform: Transform {
-                                    // hide behind the field, correct position will be set in position_fragments
-                                    translation: Vec3::new(0.0, 0.0, -1.0),
-                                    ..default()
-                                },
-                                sprite: Sprite {
-                                    color: Color::rgb(1.0, 0.73, 0.85),
-                                    ..default()
-                                },
-                                ..default()
-                            },
+                            snake_sprite_sheet.0.clone(),
                             *player_id,
                             field.single_step_into(cell, &direction.opposite()),
                             FragmentNumber(fragment_number.0 + 1),
@@ -322,47 +313,28 @@ fn grow_snake_on_feeding(
     }
 }
 
-#[derive(Resource)]
-struct SnakeSpriteSheet(SpriteSheetBundle);
-
-fn init_snake_sprite_sheet(
-    image_assets: Res<AssetServer>,
-    mut sprite_sheet: ResMut<SnakeSpriteSheet>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-) {
-    let texture_handle = image_assets.load("snake.png");
-    let texture_atlas =
-        TextureAtlas::from_grid(texture_handle, Vec2::new(64.0, 64.0), 5, 4, None, None);
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
-    sprite_sheet.0 = SpriteSheetBundle {
-        sprite: TextureAtlasSprite {
-            index: 4,
-            custom_size: Some(Vec2::new(1.0, 1.0)),
-            ..default()
-        },
-        texture_atlas: texture_atlas_handle,
-        ..default()
-    };
+pub struct PlayerPlugin {
+    pub speed: f32,
 }
 
-pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(InputPlugin)
             .insert_resource(PlayerSettings {
                 starting_position: Cell::new(0, 0),
+                speed: self.speed,
             })
-            .insert_resource(SnakeSpriteSheet(SpriteSheetBundle::default()))
+            .insert_resource(sprites::SnakeSpriteSheet(SpriteSheetBundle::default()))
             .add_event::<ShouldMoveOntoNextCellEvent>()
             .add_event::<MovedOntoNextCellEvent>()
             .add_event::<CollisionEvent>()
             .add_systems(
                 Startup,
                 (
-                    init_snake_sprite_sheet.in_set(GameSystemSets::PlayerSetup),
+                    sprites::init_snake_sprite_sheet.in_set(GameSystemSets::PlayerSetup),
                     setup
                         .in_set(GameSystemSets::PlayerSetup)
-                        .after(init_snake_sprite_sheet),
+                        .after(sprites::init_snake_sprite_sheet),
                 ),
             )
             .add_systems(
@@ -371,9 +343,12 @@ impl Plugin for PlayerPlugin {
                     make_step,
                     move_onto_new_cell.after(make_step),
                     check_collision.after(move_onto_new_cell),
-                    grow_snake_on_feeding.after(check_collision),
+                    grow_snake_on_feeding
+                        .after(check_collision)
+                        .before(update_direction),
                     update_direction.after(move_onto_new_cell),
                     position_fragments.after(move_onto_new_cell),
+                    sprites::update_fragment_sprites,
                 ),
             );
     }

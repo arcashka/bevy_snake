@@ -20,7 +20,6 @@ pub fn handle_input(
     };
 
     if let Some(direction) = new_direction {
-        info!("new input direction: {:?}", direction);
         direction_change_requests.push(direction);
     }
 }

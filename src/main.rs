@@ -20,7 +20,7 @@ fn main() {
             DefaultPlugins,
             FieldPlugin::new(IVec2 { x: 20, y: 20 }, Vec2 { x: 0.0, y: 0.0 }),
             FoodPlugin,
-            PlayerPlugin,
+            PlayerPlugin { speed: 5.0 },
         ))
         .run();
 }
