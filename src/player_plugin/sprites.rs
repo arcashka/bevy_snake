@@ -37,7 +37,10 @@ fn animation_index(fragment_type: &FragmentType, direction: &Direction) -> usize
 pub fn update_fragment_sprites(
     mut fragments_query: Query<
         (&FragmentType, &Direction, &mut TextureAtlasSprite),
-        With<Fragment>,
+        (
+            With<Fragment>,
+            Or<(Changed<FragmentType>, Changed<Direction>)>,
+        ),
     >,
 ) {
     for (fragment_type, direction, mut sprite) in fragments_query.iter_mut() {
