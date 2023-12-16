@@ -1,17 +1,37 @@
 use bevy::prelude::*;
 
-use super::{Direction, Fragment, FragmentType};
+use super::{Direction, Fragment, FragmentType, TurnDirection};
 
 #[derive(Resource)]
 pub struct SnakeSpriteSheet(pub SpriteSheetBundle);
 
-fn animation_index(fragment_type: &FragmentType, direction: &Direction) -> usize {
+fn animation_index(
+    fragment_type: &FragmentType,
+    direction: &Direction,
+    turn: &TurnDirection,
+) -> usize {
     match fragment_type {
         FragmentType::Body => match direction {
-            Direction::Up => 7,
-            Direction::Down => 7,
-            Direction::Left => 1,
-            Direction::Right => 1,
+            Direction::Up => match turn {
+                TurnDirection::Left => 2,
+                TurnDirection::Right => 0,
+                TurnDirection::None => 7,
+            },
+            Direction::Down => match turn {
+                TurnDirection::Left => 5,
+                TurnDirection::Right => 12,
+                TurnDirection::None => 7,
+            },
+            Direction::Left => match turn {
+                TurnDirection::Left => 0,
+                TurnDirection::Right => 5,
+                TurnDirection::None => 1,
+            },
+            Direction::Right => match turn {
+                TurnDirection::Left => 12,
+                TurnDirection::Right => 2,
+                TurnDirection::None => 1,
+            },
         },
         FragmentType::Head | FragmentType::HeadAndTail => match direction {
             Direction::Up => 3,
@@ -25,26 +45,33 @@ fn animation_index(fragment_type: &FragmentType, direction: &Direction) -> usize
             Direction::Left => 18,
             Direction::Right => 14,
         },
-        // FragmentType::Turn => match direction {
-        //     Direction::Up => 5,
-        //     Direction::Down => 19,
-        //     Direction::Left => 2,
-        //     Direction::Right => 0,
-        // },
     }
 }
 
 pub fn update_fragment_sprites(
     mut fragments_query: Query<
-        (&FragmentType, &Direction, &mut TextureAtlasSprite),
+        (
+            &FragmentType,
+            &Direction,
+            &TurnDirection,
+            &mut TextureAtlasSprite,
+        ),
         (
             With<Fragment>,
-            Or<(Changed<FragmentType>, Changed<Direction>)>,
+            Or<(
+                Changed<FragmentType>,
+                Changed<Direction>,
+                Changed<TurnDirection>,
+            )>,
         ),
     >,
 ) {
-    for (fragment_type, direction, mut sprite) in fragments_query.iter_mut() {
-        sprite.index = animation_index(fragment_type, direction);
+    for (fragment_type, direction, turn, mut sprite) in fragments_query.iter_mut() {
+        sprite.index = animation_index(fragment_type, direction, turn);
+        info!(
+            "fragment: fragment type: {:?}, direction: {:?}, turn: {:?}, sprite index: {}",
+            fragment_type, direction, turn, sprite.index
+        );
     }
 }
 

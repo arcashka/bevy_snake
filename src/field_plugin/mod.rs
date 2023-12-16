@@ -142,6 +142,7 @@ fn window_events_listener(
             transform.scale = Vec3::splat(scale);
         }
     }
+    info!("resize_event");
 }
 
 #[derive(Resource, Clone, Copy)]
