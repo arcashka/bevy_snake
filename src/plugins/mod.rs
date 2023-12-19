@@ -1,0 +1,4 @@
+mod highlight_material_extension;
+
+pub use highlight_material_extension::HighlightMaterialExtension;
+pub use highlight_material_extension::HighlightMaterialPlugin;
