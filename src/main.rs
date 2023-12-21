@@ -1,4 +1,5 @@
 mod field;
+mod player;
 mod plugins;
 mod scene;
 
@@ -46,7 +47,7 @@ fn main() {
             global: true,
             default_color: Color::GREEN,
         })
-        .add_systems(Startup, (scene::setup, field::setup).chain())
+        .add_systems(Startup, (scene::setup, field::setup, player::setup).chain())
         .add_systems(
             FixedUpdate,
             (

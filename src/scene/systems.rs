@@ -1,34 +1,23 @@
 use bevy::{
     prelude::*,
-    render::{camera::CameraProjection, primitives::Frustum},
     window::{WindowCreated, WindowResized},
 };
 
 use super::SceneResizeEvent;
 
 pub fn setup(mut commands: Commands) {
-    let projection = Projection::Orthographic(OrthographicProjection {
-        far: 1000.,
-        near: -1000.,
-        scale: 1.0,
-        ..Default::default()
-    });
-    let transform = Transform::default();
-    let view_projection = projection.get_projection_matrix() * transform.compute_matrix().inverse();
-    let frustum = Frustum::from_view_projection_custom_far(
-        &view_projection,
-        &transform.translation,
-        &transform.back(),
-        projection.far(),
-    );
-    commands.spawn(Camera3dBundle {
-        projection,
-        frustum,
+    commands.spawn(DirectionalLightBundle {
+        transform: Transform::from_xyz(0.0, 100.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+        directional_light: DirectionalLight {
+            shadows_enabled: true,
+            illuminance: 20000.0,
+            ..default()
+        },
         ..default()
     });
-    commands.insert_resource(AmbientLight {
-        color: Color::WHITE,
-        brightness: 3.0,
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 30.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
     });
 }
 

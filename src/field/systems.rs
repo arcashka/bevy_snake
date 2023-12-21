@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 
@@ -17,8 +19,6 @@ pub fn setup(
     mut materials: ResMut<Assets<ExtendedMaterial<StandardMaterial, HighlightMaterialExtension>>>,
 ) {
     let dim = settings.dimensions;
-    let default_size = Vec2::new(800.0, 600.0);
-    let scale = (default_size.x / dim.x as f32).min(default_size.y / dim.y as f32);
 
     let field = Field { dimensions: dim };
 
@@ -36,7 +36,7 @@ pub fn setup(
                 material: material_handle,
                 mesh: mesh_handle,
                 transform: Transform::from_translation(settings.offset.extend(0.0))
-                    .with_scale(Vec3::splat(scale)),
+                    .with_rotation(Quat::from_rotation_x(-PI / 2.0)),
                 ..default()
             },
             field,
