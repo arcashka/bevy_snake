@@ -10,6 +10,4 @@ pub use components::HighlightComponent;
 
 pub use resources::FieldSettings;
 
-pub use systems::scene_resize_event_listener;
 pub use systems::setup;
-

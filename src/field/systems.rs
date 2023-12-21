@@ -4,7 +4,6 @@ use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 
 use crate::plugins::HighlightMaterialExtension;
-use crate::scene::SceneResizeEvent;
 
 use super::Field;
 use super::FieldId;
@@ -45,18 +44,4 @@ pub fn setup(
         ))
         .id();
     info!("field created: {:?}", field_entity);
-}
-
-pub fn scene_resize_event_listener(
-    mut resize_events: EventReader<SceneResizeEvent>,
-    mut field_query: Query<(&mut Transform, &Field)>,
-) {
-    for resize_event in resize_events.read() {
-        let new_size = resize_event.size;
-        for (mut transform, field) in field_query.iter_mut() {
-            let dim = field.dimensions;
-            let scale = (new_size.x / dim.x as f32).min(new_size.y / dim.y as f32);
-            transform.scale = Vec3::splat(scale);
-        }
-    }
 }

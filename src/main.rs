@@ -35,10 +35,7 @@ fn main() {
             default_plugins,
             WireframePlugin,
             plugins::HighlightMaterialPlugin,
-            // FieldPlugin::new(IVec2 { x: 20, y: 20 }, Vec2 { x: 0.0, y: 0.0 }),
-            // FoodPlugin,
         ))
-        .add_event::<scene::SceneResizeEvent>()
         .insert_resource(field::FieldSettings {
             dimensions: IVec2 { x: 20, y: 20 },
             offset: Vec2 { x: 0.0, y: 0.0 },
@@ -48,12 +45,5 @@ fn main() {
             default_color: Color::GREEN,
         })
         .add_systems(Startup, (scene::setup, field::setup, player::setup).chain())
-        .add_systems(
-            FixedUpdate,
-            (
-                scene::window_events_listener,
-                field::scene_resize_event_listener,
-            ),
-        )
         .run();
 }
