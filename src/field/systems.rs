@@ -34,8 +34,12 @@ pub fn setup(
             MaterialMeshBundle {
                 material: material_handle,
                 mesh: mesh_handle,
-                transform: Transform::from_translation(settings.offset.extend(0.0))
-                    .with_rotation(Quat::from_rotation_x(-PI / 2.0)),
+                transform: Transform::from_translation(Vec3::new(
+                    settings.offset.x,
+                    0.0,
+                    settings.offset.y,
+                ))
+                .with_rotation(Quat::from_rotation_x(-PI / 2.0)),
                 ..default()
             },
             field,

@@ -1,4 +1,5 @@
 mod field;
+mod input;
 mod player;
 mod plugins;
 mod scene;
@@ -35,6 +36,7 @@ fn main() {
             default_plugins,
             WireframePlugin,
             plugins::HighlightMaterialPlugin,
+            input::InputPlugin,
         ))
         .insert_resource(field::FieldSettings {
             dimensions: IVec2 { x: 20, y: 20 },
@@ -45,5 +47,6 @@ fn main() {
             default_color: Color::GREEN,
         })
         .add_systems(Startup, (scene::setup, field::setup, player::setup).chain())
+        .add_systems(FixedUpdate, (player::update_joints,))
         .run();
 }
