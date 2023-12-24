@@ -4,7 +4,7 @@ use super::Player;
 use bevy::{prelude::*, render::mesh::skinning::SkinnedMesh};
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let model: Handle<Scene> = asset_server.load("models/snake_2.gltf#Scene0");
+    let model: Handle<Scene> = asset_server.load("models/snake_head.gltf#Scene0");
     info!("model: {:?}", model);
 
     commands.spawn((
