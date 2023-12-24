@@ -1,20 +1,20 @@
 use bevy::prelude::*;
 
-use super::resources::TurnRequestsBuffer;
-use crate::player::Direction;
+use super::MovementDirection;
+use super::TurnRequestsBuffer;
 
 pub fn handle_input(
     key: Res<Input<KeyCode>>,
     mut direction_change_requests: ResMut<TurnRequestsBuffer>,
 ) {
     let new_direction = if key.just_pressed(KeyCode::Left) {
-        Some(Direction::Left)
+        Some(MovementDirection::Left)
     } else if key.just_pressed(KeyCode::Right) {
-        Some(Direction::Right)
+        Some(MovementDirection::Right)
     } else if key.just_pressed(KeyCode::Up) {
-        Some(Direction::Up)
+        Some(MovementDirection::Up)
     } else if key.just_pressed(KeyCode::Down) {
-        Some(Direction::Down)
+        Some(MovementDirection::Down)
     } else {
         None
     };

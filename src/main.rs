@@ -47,6 +47,9 @@ fn main() {
             default_color: Color::GREEN,
         })
         .add_systems(Startup, (scene::setup, field::setup, player::setup).chain())
-        .add_systems(FixedUpdate, (player::update_joints,))
+        .add_systems(
+            FixedUpdate,
+            (player::update_head_transform, player::handle_input),
+        )
         .run();
 }

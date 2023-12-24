@@ -1,7 +1,8 @@
-use std::f32::consts::PI;
+use super::components::{TurnDirection, Turning, TurningValue};
+use crate::input::{MovementDirection, TurnRequestsBuffer};
 
-use super::Player;
-use bevy::{prelude::*, render::mesh::skinning::SkinnedMesh};
+use super::{Player, Speed, TurnSpeed};
+use bevy::prelude::*;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let model: Handle<Scene> = asset_server.load("models/snake_head.gltf#Scene0");
@@ -14,35 +15,51 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         Player,
+        MovementDirection::Left,
+        Speed(1.0),
+        TurnSpeed(1.0),
+        Turning(None),
     ));
 }
 
-pub fn update_joints(
+pub fn update_head_transform(
     time: Res<Time>,
-    skinned_meshes: Query<&SkinnedMesh>,
-    mut transform_query: Query<&mut Transform>,
+    mut transform_query: Query<(&mut Transform, &mut Turning, &Speed, &TurnSpeed), With<Player>>,
 ) {
-    info!("called update_joints");
-    for mesh in skinned_meshes.iter() {
-        info!("mesh.joints: {}", mesh.joints.len());
-        let joint = mesh.joints[0];
-        if let Ok(mut joint_transform) = transform_query.get_mut(joint) {
-            //joint_transform.translation.y = (time.elapsed_seconds() / 10.0).sin() * 10.0;
+    for (mut transform, mut turning, speed, turn_speed) in transform_query.iter_mut() {
+        if turning.0.is_some() {
+            let turning_unwrapped = turning.0.as_mut().unwrap();
+            let turn_delta = turn_speed.0 * time.delta_seconds();
+            turning_unwrapped.progress += turn_delta;
+            if turning_unwrapped.progress >= 90.0 {
+                transform.rotation =
+                    Quat::from_axis_angle(Vec3::Y, turning_unwrapped.target.degree());
+                turning.0 = None;
+            } else {
+                transform.rotation *=
+                    Quat::from_axis_angle(Vec3::Y, turn_delta * turning_unwrapped.direction.sign());
+            }
         }
-        let joint = mesh.joints[1];
-        if let Ok(mut joint_transform) = transform_query.get_mut(joint) {
-            joint_transform.translation.y = (time.elapsed_seconds() + PI / 10.0).sin() * 2.0 + 4.0;
-            // joint_transform.rotate(Quat::from_rotation_z(time.delta_seconds().sin()));
-        }
-        let joint = mesh.joints[2];
-        if let Ok(mut joint_transform) = transform_query.get_mut(joint) {
-            //joint_transform.translation.x = time.elapsed_seconds().sin();
-            info!("rotation: {}", time.delta_seconds().sin());
-            joint_transform.rotation.z = time.elapsed_seconds().sin() / 2.0;
-            joint_transform.translation.x = (time.elapsed_seconds() + PI / 2.0).sin() * 2.0;
-            joint_transform.translation.y = (time.elapsed_seconds() + PI / 10.0).sin() * 2.0 + 4.0;
-            // joint_transform.rotate(Quat::from_rotation_z(time.delta_seconds().sin()));
-            // joint_transform.rotate(Quat::from_rotation_z(time.delta_seconds().sin()));
+        let forward = transform.rotation * Vec3::Z;
+        transform.translation += forward * time.delta_seconds() * speed.0;
+    }
+}
+
+pub fn handle_input(
+    mut turning_query: Query<(&mut Turning, &MovementDirection), With<Player>>,
+    mut input: ResMut<TurnRequestsBuffer>,
+) {
+    for (mut turning, current_direction) in turning_query.iter_mut() {
+        if let Some(new_direction) = input.pop() {
+            if let Some(turn_direction) =
+                TurnDirection::from_turn_request(*current_direction, new_direction)
+            {
+                turning.0 = Some(TurningValue {
+                    direction: turn_direction,
+                    target: new_direction,
+                    progress: 0.0,
+                });
+            }
         }
     }
 }
