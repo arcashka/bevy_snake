@@ -1,6 +1,8 @@
 use std::f32::consts::PI;
 
-use super::components::{TurnDirection, Turning, TurningValue, Fragment, BodyList, PreviousTransforms};
+use super::components::{
+    BodyList, Fragment, PreviousTransforms, TurnDirection, Turning, TurningValue,
+};
 use super::helpers::Direction;
 use super::{Player, Speed, TurnSpeed};
 
@@ -15,14 +17,16 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let mut body_list = Vec::<Entity>::new();
     for fragment_part in 0..100 {
-        let id = commands.spawn((
-            SceneBundle {
-                scene: body_model.to_owned(),
-                transform: default_transform,
-                ..default()
-            },
-            Fragment(fragment_part),
-        )).id();
+        let id = commands
+            .spawn((
+                SceneBundle {
+                    scene: body_model.to_owned(),
+                    transform: default_transform,
+                    ..default()
+                },
+                Fragment(fragment_part),
+            ))
+            .id();
         body_list.push(id);
     }
     commands.spawn((
@@ -35,16 +39,29 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Speed(5.0),
         TurnSpeed(10.0),
         Turning(None),
-        PreviousTransforms{body: vec![default_transform]},
-        BodyList{body: body_list},
+        PreviousTransforms {
+            body: vec![default_transform],
+        },
+        BodyList { body: body_list },
     ));
 }
 
 pub fn update_head_transform(
     time: Res<Time>,
-    mut transform_query: Query<(&mut Transform, &mut Turning, &mut PreviousTransforms, &Speed, &TurnSpeed), With<Player>>,
+    mut transform_query: Query<
+        (
+            &mut Transform,
+            &mut Turning,
+            &mut PreviousTransforms,
+            &Speed,
+            &TurnSpeed,
+        ),
+        With<Player>,
+    >,
 ) {
-    for (mut transform, mut turning, mut previous_transforms, speed, turn_speed) in transform_query.iter_mut() {
+    for (mut transform, mut turning, mut previous_transforms, speed, turn_speed) in
+        transform_query.iter_mut()
+    {
         if turning.0.is_some() {
             let turning_unwrapped = turning.0.as_mut().unwrap();
             let turn_delta = turn_speed.0 * time.delta_seconds();
