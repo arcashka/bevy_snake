@@ -9,9 +9,7 @@ use crate::input::{RequestDirection, TurnRequestsBuffer};
 use bevy::prelude::*;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let model: Handle<Scene> = asset_server.load("models/snake_head.gltf#Scene0");
-    info!("model: {:?}", model);
-
+    let model: Handle<Scene> = asset_server.load("models/snake_body.gltf#Scene0");
     commands.spawn((
         SceneBundle {
             scene: model,
@@ -20,8 +18,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Player,
         RequestDirection::Right,
-        Speed(2.0),
-        TurnSpeed(5.0),
+        Speed(5.0),
+        TurnSpeed(10.0),
         Turning(None),
     ));
 }
@@ -36,17 +34,8 @@ pub fn update_head_transform(
             let turn_delta = turn_speed.0 * time.delta_seconds();
             turning_unwrapped.progress += turn_delta;
             if turning_unwrapped.progress >= PI / 2.0 {
-                info!(
-                    "rotation: {:?}",
-                    transform.rotation.to_euler(EulerRot::XYZ).1
-                );
                 let direction = Direction::closest_from_rotation(&transform.rotation);
-                info!("direction: {:?}", direction);
                 transform.rotation = direction.quaternion();
-                info!(
-                    "new rotation: {:?}",
-                    transform.rotation.to_euler(EulerRot::XYZ).1
-                );
                 turning.0 = None;
             } else {
                 transform.rotation *=

@@ -43,7 +43,7 @@ fn main() {
             offset: Vec2 { x: 0.0, y: 0.0 },
         })
         .insert_resource(WireframeConfig {
-            global: true,
+            global: false,
             default_color: Color::GREEN,
         })
         .add_systems(Startup, (scene::setup, field::setup, player::setup).chain())
