@@ -1,6 +1,9 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::*;
 
-use crate::input::MovementDirection;
+use super::helpers::Direction;
+use crate::input::RequestDirection;
 
 #[derive(Component)]
 pub struct Player;
@@ -18,28 +21,32 @@ pub enum TurnDirection {
 
 impl TurnDirection {
     pub fn from_turn_request(
-        current: MovementDirection,
-        request: MovementDirection,
+        current: Direction,
+        request: RequestDirection,
     ) -> Option<TurnDirection> {
         match current {
-            MovementDirection::Left => match request {
-                MovementDirection::Up => Some(TurnDirection::Right),
-                MovementDirection::Down => Some(TurnDirection::Left),
+            Direction::Left => match request {
+                RequestDirection::Up => Some(TurnDirection::Left),
+                RequestDirection::Down => Some(TurnDirection::Right),
+                RequestDirection::Right => Some(TurnDirection::Right),
                 _ => None,
             },
-            MovementDirection::Right => match request {
-                MovementDirection::Up => Some(TurnDirection::Left),
-                MovementDirection::Down => Some(TurnDirection::Right),
+            Direction::Right => match request {
+                RequestDirection::Up => Some(TurnDirection::Right),
+                RequestDirection::Down => Some(TurnDirection::Left),
+                RequestDirection::Left => Some(TurnDirection::Left),
                 _ => None,
             },
-            MovementDirection::Up => match request {
-                MovementDirection::Left => Some(TurnDirection::Left),
-                MovementDirection::Right => Some(TurnDirection::Right),
+            Direction::Up => match request {
+                RequestDirection::Left => Some(TurnDirection::Right),
+                RequestDirection::Right => Some(TurnDirection::Left),
+                RequestDirection::Down => Some(TurnDirection::Right),
                 _ => None,
             },
-            MovementDirection::Down => match request {
-                MovementDirection::Left => Some(TurnDirection::Right),
-                MovementDirection::Right => Some(TurnDirection::Left),
+            Direction::Down => match request {
+                RequestDirection::Left => Some(TurnDirection::Left),
+                RequestDirection::Right => Some(TurnDirection::Right),
+                RequestDirection::Up => Some(TurnDirection::Left),
                 _ => None,
             },
         }
@@ -55,17 +62,16 @@ impl TurnDirection {
 
 pub struct TurningValue {
     pub direction: TurnDirection,
-    pub target: MovementDirection,
     pub progress: f32,
 }
 
-impl MovementDirection {
-    pub fn degree(&self) -> f32 {
+impl RequestDirection {
+    pub fn radians(&self) -> f32 {
         match self {
-            MovementDirection::Left => 90.0,
-            MovementDirection::Right => 270.0,
-            MovementDirection::Up => 0.0,
-            MovementDirection::Down => 180.0,
+            RequestDirection::Left => PI,
+            RequestDirection::Right => 0.0,
+            RequestDirection::Up => PI / 2.0,
+            RequestDirection::Down => 3.0 * PI / 2.0,
         }
     }
 }

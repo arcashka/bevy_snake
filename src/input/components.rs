@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Component, Copy, Clone, Debug)]
-pub enum MovementDirection {
+pub enum RequestDirection {
     Left,
     Right,
     Up,

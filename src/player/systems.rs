@@ -1,7 +1,11 @@
-use super::components::{TurnDirection, Turning, TurningValue};
-use crate::input::{MovementDirection, TurnRequestsBuffer};
+use std::f32::consts::PI;
 
+use super::components::{TurnDirection, Turning, TurningValue};
+use super::helpers::Direction;
 use super::{Player, Speed, TurnSpeed};
+
+use crate::input::{RequestDirection, TurnRequestsBuffer};
+
 use bevy::prelude::*;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -15,9 +19,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         Player,
-        MovementDirection::Left,
-        Speed(1.0),
-        TurnSpeed(1.0),
+        RequestDirection::Right,
+        Speed(2.0),
+        TurnSpeed(5.0),
         Turning(None),
     ));
 }
@@ -31,9 +35,18 @@ pub fn update_head_transform(
             let turning_unwrapped = turning.0.as_mut().unwrap();
             let turn_delta = turn_speed.0 * time.delta_seconds();
             turning_unwrapped.progress += turn_delta;
-            if turning_unwrapped.progress >= 90.0 {
-                transform.rotation =
-                    Quat::from_axis_angle(Vec3::Y, turning_unwrapped.target.degree());
+            if turning_unwrapped.progress >= PI / 2.0 {
+                info!(
+                    "rotation: {:?}",
+                    transform.rotation.to_euler(EulerRot::XYZ).1
+                );
+                let direction = Direction::closest_from_rotation(&transform.rotation);
+                info!("direction: {:?}", direction);
+                transform.rotation = direction.quaternion();
+                info!(
+                    "new rotation: {:?}",
+                    transform.rotation.to_euler(EulerRot::XYZ).1
+                );
                 turning.0 = None;
             } else {
                 transform.rotation *=
@@ -46,17 +59,15 @@ pub fn update_head_transform(
 }
 
 pub fn handle_input(
-    mut turning_query: Query<(&mut Turning, &MovementDirection), With<Player>>,
+    mut turning_query: Query<(&mut Turning, &Transform), With<Player>>,
     mut input: ResMut<TurnRequestsBuffer>,
 ) {
-    for (mut turning, current_direction) in turning_query.iter_mut() {
+    for (mut turning, transform) in turning_query.iter_mut() {
         if let Some(new_direction) = input.pop() {
-            if let Some(turn_direction) =
-                TurnDirection::from_turn_request(*current_direction, new_direction)
-            {
+            let direction = Direction::closest_from_rotation(&transform.rotation);
+            if let Some(direction) = TurnDirection::from_turn_request(direction, new_direction) {
                 turning.0 = Some(TurningValue {
-                    direction: turn_direction,
-                    target: new_direction,
+                    direction,
                     progress: 0.0,
                 });
             }

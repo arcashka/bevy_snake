@@ -4,7 +4,7 @@ mod systems;
 
 use bevy::prelude::*;
 
-pub use components::MovementDirection;
+pub use components::RequestDirection;
 pub use resources::TurnRequestsBuffer;
 pub struct InputPlugin;
 

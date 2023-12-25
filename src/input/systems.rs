@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::MovementDirection;
+use super::RequestDirection;
 use super::TurnRequestsBuffer;
 
 pub fn handle_input(
@@ -8,13 +8,13 @@ pub fn handle_input(
     mut direction_change_requests: ResMut<TurnRequestsBuffer>,
 ) {
     let new_direction = if key.just_pressed(KeyCode::Left) {
-        Some(MovementDirection::Left)
+        Some(RequestDirection::Left)
     } else if key.just_pressed(KeyCode::Right) {
-        Some(MovementDirection::Right)
+        Some(RequestDirection::Right)
     } else if key.just_pressed(KeyCode::Up) {
-        Some(MovementDirection::Up)
+        Some(RequestDirection::Up)
     } else if key.just_pressed(KeyCode::Down) {
-        Some(MovementDirection::Down)
+        Some(RequestDirection::Down)
     } else {
         None
     };

@@ -11,7 +11,7 @@ pub fn setup(mut commands: Commands) {
         ..default()
     });
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-10.0, 30.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(-15.0, 30.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         projection: Projection::Orthographic(OrthographicProjection {
             scaling_mode: ScalingMode::AutoMin {
                 min_width: 20.0,
