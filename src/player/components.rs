@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 use bevy::prelude::*;
 
 use super::helpers::Direction;
@@ -13,6 +11,19 @@ pub struct Speed(pub f32);
 
 #[derive(Component)]
 pub struct TurnSpeed(pub f32);
+
+#[derive(Component)]
+pub struct Fragment(pub u32);
+
+#[derive(Component)]
+pub struct BodyList {
+    pub body: Vec<Entity>,
+}
+
+#[derive(Component)]
+pub struct PreviousTransforms {
+    pub body: Vec<Transform>,
+}
 
 pub enum TurnDirection {
     Left,
@@ -63,17 +74,6 @@ impl TurnDirection {
 pub struct TurningValue {
     pub direction: TurnDirection,
     pub progress: f32,
-}
-
-impl RequestDirection {
-    pub fn radians(&self) -> f32 {
-        match self {
-            RequestDirection::Left => PI,
-            RequestDirection::Right => 0.0,
-            RequestDirection::Up => PI / 2.0,
-            RequestDirection::Down => 3.0 * PI / 2.0,
-        }
-    }
 }
 
 #[derive(Component)]
