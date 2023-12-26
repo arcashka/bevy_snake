@@ -1,7 +1,8 @@
 use std::f32::consts::PI;
 
 use super::components::{
-    BodyInfo, DistanceFromStart, Fragment, PreviousTransforms, TurnDirection, Turning, TurningValue,
+    BodyInfo, DistancePassed, Fragment, PreviousHeadPosition, PreviousHeadPositions, TurnDirection,
+    Turning, TurningValue,
 };
 use super::helpers::Direction;
 use super::{Player, Speed, TurnSpeed};
@@ -24,7 +25,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     transform: default_transform,
                     ..default()
                 },
-                DistanceFromStart(0.0),
+                DistancePassed(0.0),
                 Fragment(fragment_part),
             ))
             .id();
@@ -40,13 +41,14 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Speed(5.0),
         TurnSpeed(10.0),
         Turning(None),
-        PreviousTransforms {
-            body: vec![default_transform],
-        },
-        DistanceFromStart(0.0),
+        PreviousHeadPositions(vec![PreviousHeadPosition {
+            transform: default_transform,
+            distance_passed: DistancePassed(0.0),
+        }]),
+        DistancePassed(0.0),
         BodyInfo {
             body: body_list,
-            first_gap: 2.0,
+            first_gap: 1.3,
             gap: 0.5,
         },
     ));
@@ -58,15 +60,22 @@ pub fn move_head(
         (
             &mut Transform,
             &mut Turning,
-            &mut PreviousTransforms,
+            &mut PreviousHeadPositions,
+            &mut DistancePassed,
             &Speed,
             &TurnSpeed,
         ),
         With<Player>,
     >,
 ) {
-    for (mut transform, mut turning, mut previous_transforms, speed, turn_speed) in
-        transform_query.iter_mut()
+    for (
+        mut transform,
+        mut turning,
+        mut previous_transforms,
+        mut distance_passed,
+        speed,
+        turn_speed,
+    ) in transform_query.iter_mut()
     {
         if turning.0.is_some() {
             let turning_unwrapped = turning.0.as_mut().unwrap();
@@ -82,33 +91,41 @@ pub fn move_head(
             }
         }
         let forward = transform.rotation * Vec3::Z;
-        transform.translation += forward * time.delta_seconds() * speed.0;
-        previous_transforms.body.push(transform.to_owned());
+        let distance = time.delta_seconds() * speed.0;
+        transform.translation += forward * distance;
+        distance_passed.0 += distance;
+        previous_transforms.0.push(PreviousHeadPosition {
+            transform: transform.to_owned(),
+            distance_passed: distance_passed.to_owned(),
+        });
     }
 }
 
 pub fn move_body(
     mut fragment_query: Query<&mut Transform, (With<Fragment>, Without<Player>)>,
     previous_transforms_query: Query<
-        (&PreviousTransforms, &BodyInfo, &Transform),
+        (&PreviousHeadPositions, &BodyInfo, &DistancePassed),
         (With<Player>, Without<Fragment>),
     >,
 ) {
-    for (previous_transforms, body_info, head_transform) in previous_transforms_query.iter() {
-        let head = head_transform.translation;
+    for (previous_head_positions, body_info, head_distance_passed) in
+        previous_transforms_query.iter()
+    {
         let mut next_fragment_distance = body_info.first_gap;
         let mut fragment_pointer: usize = 0;
-        let last = previous_transforms.body.len() - 1;
+        let last = previous_head_positions.0.len() - 1;
         for fragment_id in body_info.body.iter() {
-            let mut fragment_transform = fragment_query.get_mut(*fragment_id).unwrap();
             for i in fragment_pointer..last {
-                let old_body_transform = previous_transforms.body[last - i];
-                if old_body_transform.translation.distance(head) >= next_fragment_distance {
+                let previous_head = previous_head_positions.0[last - i];
+                if head_distance_passed.0 - previous_head.distance_passed.0
+                    >= next_fragment_distance
+                {
                     fragment_pointer = i;
                     break;
                 }
             }
-            *fragment_transform = previous_transforms.body[last - fragment_pointer];
+            let mut fragment_transform = fragment_query.get_mut(*fragment_id).unwrap();
+            *fragment_transform = previous_head_positions.0[last - fragment_pointer].transform;
             next_fragment_distance += body_info.gap;
         }
     }

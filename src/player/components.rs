@@ -15,8 +15,8 @@ pub struct TurnSpeed(pub f32);
 #[derive(Component)]
 pub struct Fragment(pub u32);
 
-#[derive(Component)]
-pub struct DistanceFromStart(pub f32);
+#[derive(Component, Copy, Clone, PartialEq, Debug)]
+pub struct DistancePassed(pub f32);
 
 #[derive(Component)]
 pub struct BodyInfo {
@@ -25,10 +25,14 @@ pub struct BodyInfo {
     pub gap: f32,
 }
 
-#[derive(Component)]
-pub struct PreviousTransforms {
-    pub body: Vec<Transform>,
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct PreviousHeadPosition {
+    pub transform: Transform,
+    pub distance_passed: DistancePassed,
 }
+
+#[derive(Component)]
+pub struct PreviousHeadPositions(pub Vec<PreviousHeadPosition>);
 
 pub enum TurnDirection {
     Left,
