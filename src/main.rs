@@ -49,11 +49,7 @@ fn main() {
         .add_systems(Startup, (scene::setup, field::setup, player::setup).chain())
         .add_systems(
             FixedUpdate,
-            (
-                player::handle_input,
-                player::update_head_transform,
-                player::move_body,
-            ),
+            (player::handle_input, player::move_head, player::move_body),
         )
         .run();
 }

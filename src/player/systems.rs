@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 
 use super::components::{
-    BodyList, Fragment, PreviousTransforms, TurnDirection, Turning, TurningValue,
+    BodyInfo, DistanceFromStart, Fragment, PreviousTransforms, TurnDirection, Turning, TurningValue,
 };
 use super::helpers::Direction;
 use super::{Player, Speed, TurnSpeed};
@@ -24,6 +24,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     transform: default_transform,
                     ..default()
                 },
+                DistanceFromStart(0.0),
                 Fragment(fragment_part),
             ))
             .id();
@@ -42,11 +43,16 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         PreviousTransforms {
             body: vec![default_transform],
         },
-        BodyList { body: body_list },
+        DistanceFromStart(0.0),
+        BodyInfo {
+            body: body_list,
+            first_gap: 2.0,
+            gap: 0.5,
+        },
     ));
 }
 
-pub fn update_head_transform(
+pub fn move_head(
     time: Res<Time>,
     mut transform_query: Query<
         (
@@ -82,16 +88,28 @@ pub fn update_head_transform(
 }
 
 pub fn move_body(
-    mut fragment_query: Query<&mut Transform, With<Fragment>>,
-    previous_transforms_query: Query<(&PreviousTransforms, &BodyList), With<Player>>,
+    mut fragment_query: Query<&mut Transform, (With<Fragment>, Without<Player>)>,
+    previous_transforms_query: Query<
+        (&PreviousTransforms, &BodyInfo, &Transform),
+        (With<Player>, Without<Fragment>),
+    >,
 ) {
-    let gap = 5;
-    for (previous_transforms, body_list) in previous_transforms_query.iter() {
-        let mut i: i32 = previous_transforms.body.len() as i32 - gap;
-        for fragment_id in body_list.body.iter() {
+    for (previous_transforms, body_info, head_transform) in previous_transforms_query.iter() {
+        let head = head_transform.translation;
+        let mut next_fragment_distance = body_info.first_gap;
+        let mut fragment_pointer: usize = 0;
+        let last = previous_transforms.body.len() - 1;
+        for fragment_id in body_info.body.iter() {
             let mut fragment_transform = fragment_query.get_mut(*fragment_id).unwrap();
-            *fragment_transform = previous_transforms.body[i.max(0) as usize];
-            i -= gap;
+            for i in fragment_pointer..last {
+                let old_body_transform = previous_transforms.body[last - i];
+                if old_body_transform.translation.distance(head) >= next_fragment_distance {
+                    fragment_pointer = i;
+                    break;
+                }
+            }
+            *fragment_transform = previous_transforms.body[last - fragment_pointer];
+            next_fragment_distance += body_info.gap;
         }
     }
 }

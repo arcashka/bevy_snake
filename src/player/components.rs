@@ -16,8 +16,13 @@ pub struct TurnSpeed(pub f32);
 pub struct Fragment(pub u32);
 
 #[derive(Component)]
-pub struct BodyList {
+pub struct DistanceFromStart(pub f32);
+
+#[derive(Component)]
+pub struct BodyInfo {
     pub body: Vec<Entity>,
+    pub first_gap: f32,
+    pub gap: f32,
 }
 
 #[derive(Component)]
