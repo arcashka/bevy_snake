@@ -39,7 +39,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         Player,
         Speed(5.0),
-        TurnSpeed(10.0),
+        TurnSpeed(5.0),
         Turning(None),
         PreviousHeadPositions(vec![PreviousHeadPosition {
             transform: default_transform,

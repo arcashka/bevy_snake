@@ -1,4 +1,4 @@
-mod highlight_material_extension;
+mod tiled_material_extension;
 
-pub use highlight_material_extension::HighlightMaterialExtension;
-pub use highlight_material_extension::HighlightMaterialPlugin;
+pub use tiled_material_extension::TiledMaterialExtension;
+pub use tiled_material_extension::TiledMaterialPlugin;

@@ -14,10 +14,6 @@ impl Direction {
     pub fn closest_from_rotation(rotation: &Quat) -> Self {
         let rotation_direction = rotation.mul_vec3(Vec3::X);
         let dot = Vec3::X.dot(rotation_direction).clamp(-1.0, 1.0);
-        println!("rotation: {}", rotation);
-        println!("rotation_direction: {}", rotation_direction);
-        println!("dot: {}", dot);
-
         let diff_zero = (dot - 0.0).abs();
         let diff_one = (dot - 1.0).abs();
         let diff_minus_one = (dot + 1.0).abs();

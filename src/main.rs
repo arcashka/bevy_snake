@@ -35,11 +35,11 @@ fn main() {
         .add_plugins((
             default_plugins,
             WireframePlugin,
-            plugins::HighlightMaterialPlugin,
+            plugins::TiledMaterialPlugin,
             input::InputPlugin,
         ))
         .insert_resource(field::FieldSettings {
-            dimensions: IVec2 { x: 20, y: 20 },
+            dimensions: IVec2 { x: 15, y: 15 },
             offset: Vec2 { x: 0.0, y: 0.0 },
         })
         .insert_resource(WireframeConfig {
