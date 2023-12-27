@@ -39,7 +39,7 @@ fn main() {
             input::InputPlugin,
         ))
         .insert_resource(field::FieldSettings {
-            dimensions: IVec2 { x: 15, y: 15 },
+            dimensions: IVec2 { x: 10, y: 10 },
             offset: Vec2 { x: 0.0, y: 0.0 },
         })
         .insert_resource(WireframeConfig {

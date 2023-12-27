@@ -28,8 +28,10 @@ pub fn setup(
     };
     let material_handle = extended_materials.add(material);
 
-    let mesh_top = Mesh::from(shape::Box::new(dim.x as f32, 0.5, dim.y as f32));
-    let mesh_base = Mesh::from(shape::Box::new(dim.x as f32, 1.0, dim.y as f32));
+    let top_size = 2.0;
+    let base_size = 2.0;
+    let mesh_top = Mesh::from(shape::Box::new(dim.x as f32, top_size, dim.y as f32));
+    let mesh_base = Mesh::from(shape::Box::new(dim.x as f32, base_size, dim.y as f32));
     let mesh_top_handle = meshes.add(mesh_top);
     let mesh_base_handle = meshes.add(mesh_base);
 
@@ -41,7 +43,7 @@ pub fn setup(
                 mesh: mesh_top_handle,
                 transform: Transform::from_translation(Vec3::new(
                     settings.offset.x,
-                    -0.25,
+                    -top_size / 2.0,
                     settings.offset.y,
                 )),
                 //.with_rotation(Quat::from_rotation_z(PI / 2.0)),
@@ -52,7 +54,7 @@ pub fn setup(
                 mesh: mesh_base_handle,
                 transform: Transform::from_translation(Vec3::new(
                     settings.offset.x,
-                    -0.75,
+                    -(base_size + top_size) / 2.0,
                     settings.offset.y,
                 )),
                 //.with_rotation(Quat::from_rotation_x(PI / 2.0)),

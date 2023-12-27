@@ -19,18 +19,6 @@
 @group(1) @binding(101) var tile_texture: texture_2d<f32>;
 @group(1) @binding(102) var tile_sampler: sampler;
 
-fn modulo_euclidean(a: f32, b: f32) -> f32 {
-	var m = a % b;
-	if (m < 0.0) {
-		if (b < 0.0) {
-			m -= b;
-		} else {
-			m += b;
-		}
-	}
-	return m;
-}
-
 @fragment
 fn fragment(
     input: VertexOutput,
@@ -39,8 +27,8 @@ fn fragment(
     // Generate a PbrInput struct from the StandardMaterial bindings
     var pbr_input = pbr_input_from_standard_material(input, is_front);
 
-    let new_uv_x = modulo_euclidean(input.uv.x * f32(u_FieldSize.x), 1.0);
-    let new_uv_y = modulo_euclidean(input.uv.y * f32(u_FieldSize.y), 1.0);
+    let new_uv_x = (input.uv.x * f32(u_FieldSize.x)) % 1.0;
+    let new_uv_y = (input.uv.y * f32(u_FieldSize.y)) % 1.0;
     let new_uv = vec2<f32>(new_uv_x, new_uv_y);
     let color = textureSample(tile_texture, tile_sampler, new_uv);
 
@@ -48,7 +36,9 @@ fn fragment(
         pbr_input.material,
         pbr_input.material.base_color
     );
-    if (color.a > 0.9) {
+    let is_top = all(pbr_input.world_normal == vec3<f32>(0.0, 1.0, 0.0));
+    let count_pixel = color.a > 0.9;
+    if (is_top && count_pixel) {
         pbr_input.material.base_color = color;
     }
 

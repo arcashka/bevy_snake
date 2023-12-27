@@ -14,8 +14,8 @@ pub fn setup(mut commands: Commands) {
         transform: Transform::from_xyz(-15.0, 30.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
         projection: Projection::Orthographic(OrthographicProjection {
             scaling_mode: ScalingMode::AutoMin {
-                min_width: 15.0,
-                min_height: 15.0,
+                min_width: 10.0,
+                min_height: 10.0,
             },
             ..default()
         }),
