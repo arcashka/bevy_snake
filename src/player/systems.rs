@@ -4,8 +4,8 @@ use super::components::{
     BodyInfo, DistancePassed, Fragment, PreviousHeadPosition, PreviousHeadPositions, TurnDirection,
     Turning, TurningValue,
 };
+use super::components::{Player, Speed, TurnSpeed};
 use super::helpers::Direction;
-use super::{Player, Speed, TurnSpeed};
 
 use crate::field::{Field, FieldId};
 use crate::input::TurnRequestsBuffer;
@@ -145,7 +145,7 @@ pub fn handle_input(
             }
             let cell = field.cell(transform.translation.xz());
             let cell_center_translation = field.translation(&cell);
-            if cell_center_translation.distance(transform.translation.xz()) > 0.1 {
+            if cell_center_translation.distance(transform.translation.xz()) > 1.0 {
                 continue;
             }
 

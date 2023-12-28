@@ -3,8 +3,8 @@ use bevy::prelude::*;
 
 use crate::plugins::TiledMaterialExtension;
 
-use super::Field;
-use super::FieldId;
+use super::components::Field;
+use super::components::FieldId;
 use super::FieldSettings;
 
 pub fn setup(
