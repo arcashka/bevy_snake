@@ -134,23 +134,33 @@ pub fn move_body(
 }
 
 pub fn handle_input(
-    mut turning_query: Query<(&mut Turning, &Transform, &FieldId), With<Player>>,
+    mut turning_query: Query<(&mut Turning, &mut Transform, &FieldId), With<Player>>,
     mut input: ResMut<TurnRequestsBuffer>,
     field_query: Query<(&Field, &FieldId)>,
 ) {
-    for (mut turning, transform, player_field_id) in turning_query.iter_mut() {
+    for (mut turning, mut transform, player_field_id) in turning_query.iter_mut() {
         for (field, field_id) in field_query.iter() {
             if player_field_id != field_id {
                 continue;
             }
+
+            if turning.0.is_some() {
+                continue;
+            }
+
             let cell = field.cell(transform.translation.xz());
             let cell_center_translation = field.translation(&cell);
-            if cell_center_translation.distance(transform.translation.xz()) > 1.0 {
+            if cell_center_translation.distance(transform.translation.xz()) > 0.2 {
                 continue;
             }
 
             if let Some(new_direction) = input.pop() {
                 let direction = Direction::closest_from_rotation(&transform.rotation);
+                transform.translation = Vec3::new(
+                    cell_center_translation.x,
+                    transform.translation.y,
+                    cell_center_translation.y,
+                );
                 if let Some(direction) = TurnDirection::from_turn_request(direction, new_direction)
                 {
                     turning.0 = Some(TurningValue {
