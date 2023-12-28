@@ -7,6 +7,7 @@ use super::components::{
 use super::helpers::Direction;
 use super::{Player, Speed, TurnSpeed};
 
+use crate::field::{Field, FieldId};
 use crate::input::TurnRequestsBuffer;
 
 use bevy::prelude::*;
@@ -14,7 +15,7 @@ use bevy::prelude::*;
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let model: Handle<Scene> = asset_server.load("models/snake_head.gltf#Scene0");
     let body_model: Handle<Scene> = asset_server.load("models/snake_body.gltf#Scene0");
-    let default_transform = Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::splat(1.0));
+    let default_transform = Transform::from_xyz(-0.5, 0.0, -0.5).with_scale(Vec3::splat(0.5));
 
     let mut body_list = Vec::<Entity>::new();
     for fragment_part in 0..100 {
@@ -38,7 +39,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         Player,
-        Speed(5.0),
+        Speed(1.0),
         TurnSpeed(5.0),
         Turning(None),
         PreviousHeadPositions(vec![PreviousHeadPosition {
@@ -48,9 +49,10 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         DistancePassed(0.0),
         BodyInfo {
             body: body_list,
-            first_gap: 1.3,
-            gap: 0.5,
+            first_gap: 0.5,
+            gap: 0.2,
         },
+        FieldId(0),
     ));
 }
 
@@ -132,17 +134,30 @@ pub fn move_body(
 }
 
 pub fn handle_input(
-    mut turning_query: Query<(&mut Turning, &Transform), With<Player>>,
+    mut turning_query: Query<(&mut Turning, &Transform, &FieldId), With<Player>>,
     mut input: ResMut<TurnRequestsBuffer>,
+    field_query: Query<(&Field, &FieldId)>,
 ) {
-    for (mut turning, transform) in turning_query.iter_mut() {
-        if let Some(new_direction) = input.pop() {
-            let direction = Direction::closest_from_rotation(&transform.rotation);
-            if let Some(direction) = TurnDirection::from_turn_request(direction, new_direction) {
-                turning.0 = Some(TurningValue {
-                    direction,
-                    progress: 0.0,
-                });
+    for (mut turning, transform, player_field_id) in turning_query.iter_mut() {
+        for (field, field_id) in field_query.iter() {
+            if player_field_id != field_id {
+                continue;
+            }
+            let cell = field.cell(transform.translation.xz());
+            let cell_center_translation = field.translation(&cell);
+            if cell_center_translation.distance(transform.translation.xz()) > 0.1 {
+                continue;
+            }
+
+            if let Some(new_direction) = input.pop() {
+                let direction = Direction::closest_from_rotation(&transform.rotation);
+                if let Some(direction) = TurnDirection::from_turn_request(direction, new_direction)
+                {
+                    turning.0 = Some(TurningValue {
+                        direction,
+                        progress: 0.0,
+                    });
+                }
             }
         }
     }

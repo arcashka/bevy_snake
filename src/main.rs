@@ -41,6 +41,7 @@ fn main() {
         .insert_resource(field::FieldSettings {
             dimensions: IVec2 { x: 10, y: 10 },
             offset: Vec2 { x: 0.0, y: 0.0 },
+            size: Vec2 { x: 10.0, y: 10.0 },
         })
         .insert_resource(WireframeConfig {
             global: false,
