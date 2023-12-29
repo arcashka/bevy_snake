@@ -7,7 +7,7 @@ use super::components::{
 use super::components::{Player, Speed, TurnSpeed};
 use super::helpers::Direction;
 
-use crate::field::{Field, FieldId};
+use crate::field::{Cell, Field, FieldId};
 use crate::input::TurnRequestsBuffer;
 
 use bevy::prelude::*;
@@ -53,6 +53,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             gap: 0.2,
         },
         FieldId(0),
+        Cell::new(4, 4),
     ));
 }
 
@@ -149,8 +150,9 @@ pub fn handle_input(
             }
 
             let cell = field.cell(transform.translation.xz());
+            let cell_size = field.cell_size();
             let cell_center_translation = field.translation(&cell);
-            if cell_center_translation.distance(transform.translation.xz()) > 0.2 {
+            if cell_center_translation.distance(transform.translation.xz()) > (cell_size / 2.0).x {
                 continue;
             }
 

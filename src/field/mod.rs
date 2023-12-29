@@ -4,7 +4,7 @@ mod systems;
 
 use bevy::prelude::*;
 
-pub use components::{Field, FieldId};
+pub use components::{Cell, Field, FieldId};
 pub use resources::FieldSettings;
 
 use systems::setup;

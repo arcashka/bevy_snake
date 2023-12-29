@@ -29,13 +29,13 @@ impl Field {
         }
     }
 
+    pub fn cell_size(&self) -> Vec2 {
+        self.size / self.dimensions.as_vec2()
+    }
+
     fn bottom_left(&self) -> Vec2 {
         let (h, w) = self.size.into();
         Vec2::new(-w / 2.0, -h / 2.0)
-    }
-
-    fn cell_size(&self) -> Vec2 {
-        self.size / self.dimensions.as_vec2()
     }
 }
 
