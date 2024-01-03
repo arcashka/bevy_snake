@@ -5,6 +5,7 @@ use super::components::{
     Turning, TurningValue,
 };
 use super::components::{Player, Speed, TurnSpeed};
+use super::events::MovedOntoNewCellEvent;
 use super::helpers::Direction;
 
 use crate::field::{Cell, Field, FieldId};
@@ -39,8 +40,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         Player,
-        Speed(1.0),
-        TurnSpeed(5.0),
+        Speed(3.0),
+        TurnSpeed(6.0),
         Turning(None),
         PreviousHeadPositions(vec![PreviousHeadPosition {
             transform: default_transform,
@@ -80,8 +81,7 @@ pub fn move_head(
         turn_speed,
     ) in transform_query.iter_mut()
     {
-        if turning.0.is_some() {
-            let turning_unwrapped = turning.0.as_mut().unwrap();
+        if let Some(turning_unwrapped) = turning.0.as_mut() {
             let turn_delta = turn_speed.0 * time.delta_seconds();
             turning_unwrapped.progress += turn_delta;
             if turning_unwrapped.progress >= PI / 2.0 {
@@ -138,38 +138,47 @@ pub fn handle_input(
     mut turning_query: Query<(&mut Turning, &mut Transform, &FieldId), With<Player>>,
     mut input: ResMut<TurnRequestsBuffer>,
     field_query: Query<(&Field, &FieldId)>,
+    mut new_cell_events: EventReader<MovedOntoNewCellEvent>,
 ) {
-    for (mut turning, mut transform, player_field_id) in turning_query.iter_mut() {
-        for (field, field_id) in field_query.iter() {
+    for (mut turning, transform, player_field_id) in turning_query.iter_mut() {
+        for (_, field_id) in field_query.iter() {
             if player_field_id != field_id {
                 continue;
             }
 
-            if turning.0.is_some() {
-                continue;
-            }
-
-            let cell = field.cell(transform.translation.xz());
-            let cell_size = field.cell_size();
-            let cell_center_translation = field.translation(&cell);
-            if cell_center_translation.distance(transform.translation.xz()) > (cell_size / 2.0).x {
-                continue;
-            }
-
-            if let Some(new_direction) = input.pop() {
-                let direction = Direction::closest_from_rotation(&transform.rotation);
-                transform.translation = Vec3::new(
-                    cell_center_translation.x,
-                    transform.translation.y,
-                    cell_center_translation.y,
-                );
-                if let Some(direction) = TurnDirection::from_turn_request(direction, new_direction)
-                {
-                    turning.0 = Some(TurningValue {
-                        direction,
-                        progress: 0.0,
-                    });
+            for _ in new_cell_events.read() {
+                info!("checking for input");
+                if let Some(turn_request) = input.pop() {
+                    info!("got turn request: {:?}", turn_request);
+                    let direction = Direction::closest_from_rotation(&transform.rotation);
+                    if let Some(direction) =
+                        TurnDirection::from_turn_request(direction, turn_request)
+                    {
+                        turning.0 = Some(TurningValue {
+                            direction,
+                            progress: 0.0,
+                        });
+                    }
                 }
+            }
+        }
+    }
+}
+
+pub fn check_if_on_new_cell(
+    mut player_query: Query<(&mut Cell, &Transform, &FieldId), With<Player>>,
+    field_query: Query<(&Field, &FieldId)>,
+    mut events: EventWriter<MovedOntoNewCellEvent>,
+) {
+    for (mut cell, transform, player_field_id) in player_query.iter_mut() {
+        for (field, field_id) in field_query.iter() {
+            if field_id != player_field_id {
+                continue;
+            }
+            let current_cell = field.cell(transform.translation.xz());
+            if current_cell != *cell {
+                *cell = current_cell;
+                events.send(MovedOntoNewCellEvent {});
             }
         }
     }
