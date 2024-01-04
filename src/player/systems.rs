@@ -14,7 +14,7 @@ use crate::input::TurnRequestsBuffer;
 use bevy::prelude::*;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let model: Handle<Scene> = asset_server.load("models/snake_head.gltf#Scene0");
+    let model: Handle<Scene> = asset_server.load("models/snake_head_me.gltf#Scene0");
     let body_model: Handle<Scene> = asset_server.load("models/snake_body.gltf#Scene0");
     let default_transform = Transform::from_xyz(-0.5, 0.0, -0.5).with_scale(Vec3::splat(0.5));
 
@@ -50,7 +50,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         DistancePassed(0.0),
         BodyInfo {
             body: body_list,
-            first_gap: 0.5,
+            first_gap: 0.2,
             gap: 0.2,
         },
         FieldId(0),
@@ -147,9 +147,7 @@ pub fn handle_input(
             }
 
             for _ in new_cell_events.read() {
-                info!("checking for input");
                 if let Some(turn_request) = input.pop() {
-                    info!("got turn request: {:?}", turn_request);
                     let direction = Direction::closest_from_rotation(&transform.rotation);
                     if let Some(direction) =
                         TurnDirection::from_turn_request(direction, turn_request)
