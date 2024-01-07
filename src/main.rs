@@ -3,6 +3,7 @@ mod input;
 mod player;
 mod plugins;
 mod scene;
+mod states;
 
 use bevy::prelude::*;
 
@@ -14,5 +15,6 @@ fn main() {
             player::PlayerPlugin,
             field::FieldPlugin,
         ))
+        .add_state::<states::GameState>()
         .run();
 }
