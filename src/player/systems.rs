@@ -151,10 +151,10 @@ pub fn handle_input(
         let cell_local_translation = field.cell_local_translation(transform.translation.xz());
         let cell_size = field.cell_size();
         let cell_progress = match direction {
-            Direction::Left => (cell_size.x - cell_local_translation.x) / cell_size.x,
-            Direction::Right => cell_local_translation.x / cell_size.x,
-            Direction::Up => cell_local_translation.y / cell_size.y,
-            Direction::Down => (cell_size.y - cell_local_translation.y) / cell_size.y,
+            Direction::Left => (cell_size - cell_local_translation.x) / cell_size,
+            Direction::Right => cell_local_translation.x / cell_size,
+            Direction::Up => cell_local_translation.y / cell_size,
+            Direction::Down => (cell_size - cell_local_translation.y) / cell_size,
         };
 
         for _ in new_cell_events.read() {
