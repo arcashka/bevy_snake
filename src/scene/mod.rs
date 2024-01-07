@@ -10,7 +10,6 @@ use bevy::{
     },
 };
 
-use crate::system_sets::GameSystemSets;
 use systems::setup;
 
 pub struct ScenePlugin;
@@ -37,6 +36,6 @@ impl Plugin for ScenePlugin {
                 global: false,
                 default_color: Color::GREEN,
             })
-            .add_systems(Startup, setup.in_set(GameSystemSets::PlayerSetup));
+            .add_systems(Startup, setup);
     }
 }

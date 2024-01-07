@@ -4,22 +4,18 @@ mod systems;
 
 use bevy::prelude::*;
 
-pub use components::{Cell, Field, FieldId};
-pub use resources::FieldSettings;
+pub use components::Cell;
+pub use resources::Field;
 
 use systems::setup;
 
 use crate::plugins::TiledMaterialPlugin;
-use crate::system_sets::GameSystemSets;
 
-pub struct FieldPlugin {
-    pub settings: FieldSettings,
-}
+pub struct FieldPlugin;
 
 impl Plugin for FieldPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(TiledMaterialPlugin)
-            .insert_resource(self.settings)
-            .add_systems(Startup, setup.in_set(GameSystemSets::FieldSetup));
+            .add_systems(Startup, setup);
     }
 }

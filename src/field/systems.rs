@@ -1,15 +1,12 @@
 use bevy::pbr::ExtendedMaterial;
 use bevy::prelude::*;
 
+use super::resources::Field;
 use crate::plugins::TiledMaterialExtension;
-
-use super::components::Field;
-use super::components::FieldId;
-use super::FieldSettings;
 
 pub fn setup(
     mut commands: Commands,
-    settings: Res<FieldSettings>,
+    field: Res<Field>,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut extended_materials: ResMut<
@@ -17,38 +14,37 @@ pub fn setup(
     >,
     mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let dim = settings.dimensions;
-    let offset = settings.offset;
-    let size = settings.size;
-
-    let field = Field {
-        dimensions: dim,
-        size,
-        offset,
-    };
-
+    info!("field setup called");
     let grass_border: Handle<Image> = asset_server.load("grass_border.png");
     let material = ExtendedMaterial::<StandardMaterial, TiledMaterialExtension> {
         base: StandardMaterial::from(Color::SALMON),
-        extension: TiledMaterialExtension::new(dim, grass_border),
+        extension: TiledMaterialExtension::new(field.dimensions, grass_border),
     };
     let material_handle = extended_materials.add(material);
 
     let top_size = 2.0;
     let base_size = 2.0;
-    let mesh_top_handle = meshes.add(Mesh::from(shape::Box::new(size.x, top_size, size.y)));
-    let mesh_base_handle = meshes.add(Mesh::from(shape::Box::new(size.x, base_size, size.y)));
+    let mesh_top_handle = meshes.add(Mesh::from(shape::Box::new(
+        field.size.x,
+        top_size,
+        field.size.y,
+    )));
+    let mesh_base_handle = meshes.add(Mesh::from(shape::Box::new(
+        field.size.x,
+        base_size,
+        field.size.y,
+    )));
 
     commands
-        .spawn((SpatialBundle::default(), field, FieldId(0)))
+        .spawn(SpatialBundle::default())
         .with_children(|parent| {
             parent.spawn(MaterialMeshBundle {
                 material: material_handle,
                 mesh: mesh_top_handle,
                 transform: Transform::from_translation(Vec3::new(
-                    offset.x,
+                    field.offset.x,
                     -top_size / 2.0,
-                    offset.y,
+                    field.offset.y,
                 )),
                 ..default()
             });
@@ -56,9 +52,9 @@ pub fn setup(
                 material: standard_materials.add(StandardMaterial::from(Color::WHITE)),
                 mesh: mesh_base_handle,
                 transform: Transform::from_translation(Vec3::new(
-                    offset.x,
+                    field.offset.x,
                     -(base_size + top_size) / 2.0,
-                    offset.y,
+                    field.offset.y,
                 )),
                 ..default()
             });

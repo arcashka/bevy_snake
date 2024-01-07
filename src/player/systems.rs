@@ -8,7 +8,7 @@ use super::components::{Player, Speed, TurnSpeed};
 use super::events::MovedOntoNewCellEvent;
 use super::helpers::Direction;
 
-use crate::field::{Cell, Field, FieldId};
+use crate::field::{Cell, Field};
 use crate::input::TurnRequestsBuffer;
 
 use bevy::prelude::*;
@@ -17,6 +17,8 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let model: Handle<Scene> = asset_server.load("models/snake_head_me.gltf#Scene0");
     let body_model: Handle<Scene> = asset_server.load("models/snake_body.gltf#Scene0");
     let default_transform = Transform::from_xyz(-0.5, 0.0, -0.5).with_scale(Vec3::splat(0.5));
+    // let turn_moment = 0.3;
+    // let speed = 3.0;
 
     let mut body_list = Vec::<Entity>::new();
     for fragment_part in 0..100 {
@@ -43,6 +45,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Speed(3.0),
         TurnSpeed(6.0),
         Turning(None),
+        Direction::Right,
         PreviousHeadPositions(vec![PreviousHeadPosition {
             transform: default_transform,
             distance_passed: DistancePassed(0.0),
@@ -53,7 +56,6 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             first_gap: 0.2,
             gap: 0.2,
         },
-        FieldId(0),
         Cell::new(4, 4),
     ));
 }
@@ -64,6 +66,7 @@ pub fn move_head(
         (
             &mut Transform,
             &mut Turning,
+            &mut Direction,
             &mut PreviousHeadPositions,
             &mut DistancePassed,
             &Speed,
@@ -75,6 +78,7 @@ pub fn move_head(
     for (
         mut transform,
         mut turning,
+        mut direction,
         mut previous_transforms,
         mut distance_passed,
         speed,
@@ -85,7 +89,7 @@ pub fn move_head(
             let turn_delta = turn_speed.0 * time.delta_seconds();
             turning_unwrapped.progress += turn_delta;
             if turning_unwrapped.progress >= PI / 2.0 {
-                let direction = Direction::closest_from_rotation(&transform.rotation);
+                *direction = Direction::closest_from_rotation(&transform.rotation);
                 transform.rotation = direction.quaternion();
                 turning.0 = None;
             } else {
@@ -135,28 +139,33 @@ pub fn move_body(
 }
 
 pub fn handle_input(
-    mut turning_query: Query<(&mut Turning, &mut Transform, &FieldId), With<Player>>,
+    mut turning_query: Query<(&mut Turning, &Transform, &Direction), With<Player>>,
     mut input: ResMut<TurnRequestsBuffer>,
-    field_query: Query<(&Field, &FieldId)>,
     mut new_cell_events: EventReader<MovedOntoNewCellEvent>,
+    field: Res<Field>,
 ) {
-    for (mut turning, transform, player_field_id) in turning_query.iter_mut() {
-        for (_, field_id) in field_query.iter() {
-            if player_field_id != field_id {
-                continue;
-            }
+    for (mut turning, transform, direction) in turning_query.iter_mut() {
+        if turning.0.is_some() {
+            continue;
+        }
+        let cell_local_translation = field.cell_local_translation(transform.translation.xz());
+        let cell_size = field.cell_size();
+        let cell_progress = match direction {
+            Direction::Left => (cell_size.x - cell_local_translation.x) / cell_size.x,
+            Direction::Right => cell_local_translation.x / cell_size.x,
+            Direction::Up => cell_local_translation.y / cell_size.y,
+            Direction::Down => (cell_size.y - cell_local_translation.y) / cell_size.y,
+        };
 
-            for _ in new_cell_events.read() {
-                if let Some(turn_request) = input.pop() {
-                    let direction = Direction::closest_from_rotation(&transform.rotation);
-                    if let Some(direction) =
-                        TurnDirection::from_turn_request(direction, turn_request)
-                    {
-                        turning.0 = Some(TurningValue {
-                            direction,
-                            progress: 0.0,
-                        });
-                    }
+        for _ in new_cell_events.read() {
+            if let Some(turn_request) = input.pop() {
+                if let Some(new_direction) =
+                    TurnDirection::from_turn_request(*direction, turn_request)
+                {
+                    turning.0 = Some(TurningValue {
+                        direction: new_direction,
+                        progress: 0.0,
+                    });
                 }
             }
         }
@@ -164,20 +173,15 @@ pub fn handle_input(
 }
 
 pub fn check_if_on_new_cell(
-    mut player_query: Query<(&mut Cell, &Transform, &FieldId), With<Player>>,
-    field_query: Query<(&Field, &FieldId)>,
+    mut player_query: Query<(&mut Cell, &Transform), With<Player>>,
     mut events: EventWriter<MovedOntoNewCellEvent>,
+    field: Res<Field>,
 ) {
-    for (mut cell, transform, player_field_id) in player_query.iter_mut() {
-        for (field, field_id) in field_query.iter() {
-            if field_id != player_field_id {
-                continue;
-            }
-            let current_cell = field.cell(transform.translation.xz());
-            if current_cell != *cell {
-                *cell = current_cell;
-                events.send(MovedOntoNewCellEvent {});
-            }
+    for (mut cell, transform) in player_query.iter_mut() {
+        let current_cell = field.cell(transform.translation.xz());
+        if current_cell != *cell {
+            *cell = current_cell;
+            events.send(MovedOntoNewCellEvent {});
         }
     }
 }
