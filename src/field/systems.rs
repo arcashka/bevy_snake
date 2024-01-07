@@ -14,11 +14,6 @@ pub fn setup(
     >,
     mut standard_materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    info!("field setup called");
-    info!("field size: {:?}", field.size());
-    info!("field offset: {:?}", field.offset());
-    info!("field cell_size: {:?}", field.cell_size());
-    info!("field dim: {:?}", field.dim());
     let grass_border: Handle<Image> = asset_server.load("grass_border.png");
     let material = ExtendedMaterial::<StandardMaterial, TiledMaterialExtension> {
         base: StandardMaterial::from(Color::SALMON),

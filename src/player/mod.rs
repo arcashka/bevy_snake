@@ -1,11 +1,14 @@
 mod components;
 mod events;
 mod helpers;
+mod resources;
 mod systems;
 
 use bevy::prelude::*;
 
 use systems::{check_if_on_new_cell, handle_input, move_body, move_head, setup};
+
+use crate::field::Cell;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -21,6 +24,12 @@ impl Plugin for PlayerPlugin {
                     handle_input.after(check_if_on_new_cell),
                 ),
             )
-            .add_event::<events::MovedOntoNewCellEvent>();
+            .add_event::<events::MovedOntoNewCellEvent>()
+            .insert_resource(resources::PlayerStartSetting {
+                cell: Cell::new(4, 4),
+                direction: components::Direction::Right,
+                speed: 3.0,
+                gap: 0.5,
+            });
     }
 }

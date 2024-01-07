@@ -14,10 +14,5 @@ fn main() {
             player::PlayerPlugin,
             field::FieldPlugin,
         ))
-        .insert_resource(field::Field::new(
-            IVec2 { x: 10, y: 10 },
-            Vec2 { x: 10.0, y: 10.0 },
-            Vec2 { x: 0.0, y: 0.0 },
-        ))
         .run();
 }

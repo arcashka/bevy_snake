@@ -4,21 +4,36 @@ use super::components::{
     BodyInfo, DistancePassed, Fragment, PreviousHeadPosition, PreviousHeadPositions, TurnDirection,
     Turning, TurningValue,
 };
-use super::components::{Player, Speed, TurnSpeed};
+use super::components::{Direction, Player, Speed, TurnSpeed};
 use super::events::MovedOntoNewCellEvent;
-use super::helpers::Direction;
+use super::resources::{PlayerModel, PlayerStartSetting};
 
 use crate::field::{Cell, Field};
 use crate::input::TurnRequestsBuffer;
 
+use bevy::gltf::{Gltf, GltfMesh};
 use bevy::prelude::*;
 
-pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let model: Handle<Scene> = asset_server.load("models/snake_head_me.gltf#Scene0");
-    let body_model: Handle<Scene> = asset_server.load("models/snake_body.gltf#Scene0");
-    let default_transform = Transform::from_xyz(-0.5, 0.0, -0.5).with_scale(Vec3::splat(0.5));
-    // let turn_moment = 0.3;
-    // let speed = 3.0;
+pub fn load_mesh(mut commands: Commands, assets: Res<AssetServer>) {
+    let gltf = assets.load("my_asset_pack.glb");
+    commands.insert_resource(PlayerModel(gltf));
+}
+
+pub fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    start_settings: Res<PlayerStartSetting>,
+    field: Res<Field>,
+) {
+    let model: Handle<Scene> = asset_server.load("models/whole_snake.gltf#Node/head_01");
+    let body_model: Handle<Scene> = asset_server.load("models/whole_snake.gltf#Scene0#main_body");
+
+    let cell_coordinates = field.translation_of_cell(&start_settings.cell);
+    let head_translation = Vec3::new(cell_coordinates.x, 0.0, cell_coordinates.y);
+    let turn_moment = 0.3;
+    let scaled_speed = start_settings.speed * field.cell_size();
+    let cell_part_for_turn = 1.0 - (turn_moment * 2.0);
+    let turn_speed = scaled_speed * 2.0 / cell_part_for_turn;
 
     let mut body_list = Vec::<Entity>::new();
     for fragment_part in 0..100 {
@@ -26,7 +41,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             .spawn((
                 SceneBundle {
                     scene: body_model.to_owned(),
-                    transform: default_transform,
+                    transform: Transform::from_translation(head_translation),
                     ..default()
                 },
                 DistancePassed(0.0),
@@ -38,25 +53,25 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         SceneBundle {
             scene: model,
-            transform: default_transform,
+            transform: Transform::from_translation(head_translation),
             ..default()
         },
         Player,
-        Speed(3.0),
-        TurnSpeed(6.0),
+        Speed(start_settings.speed),
+        start_settings.direction,
+        start_settings.cell,
+        TurnSpeed(turn_speed),
         Turning(None),
-        Direction::Right,
         PreviousHeadPositions(vec![PreviousHeadPosition {
-            transform: default_transform,
+            transform: Transform::from_translation(head_translation),
             distance_passed: DistancePassed(0.0),
         }]),
         DistancePassed(0.0),
         BodyInfo {
             body: body_list,
             first_gap: 0.2,
-            gap: 0.2,
+            gap: start_settings.gap,
         },
-        Cell::new(4, 4),
     ));
 }
 
