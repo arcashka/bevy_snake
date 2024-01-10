@@ -1,3 +1,4 @@
+mod asset_loader;
 mod field;
 mod input;
 mod player;
@@ -14,6 +15,7 @@ fn main() {
             input::InputPlugin,
             player::PlayerPlugin,
             field::FieldPlugin,
+            asset_loader::AssetLoaderPlugin,
         ))
         .add_state::<states::GameState>()
         .run();

@@ -6,54 +6,67 @@ use super::components::{
 };
 use super::components::{Direction, Player, Speed, TurnSpeed};
 use super::events::MovedOntoNewCellEvent;
-use super::resources::{PlayerModel, PlayerStartSetting};
+use super::resources::PlayerStartSetting;
 
+use crate::asset_loader::{AssetsStorage, SceneAssets};
 use crate::field::{Cell, Field};
 use crate::input::TurnRequestsBuffer;
 
-use bevy::gltf::{Gltf, GltfMesh};
 use bevy::prelude::*;
-
-pub fn load_mesh(mut commands: Commands, assets: Res<AssetServer>) {
-    let gltf = assets.load("my_asset_pack.glb");
-    commands.insert_resource(PlayerModel(gltf));
-}
 
 pub fn setup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     start_settings: Res<PlayerStartSetting>,
     field: Res<Field>,
+    assets_storage: Res<AssetsStorage>,
 ) {
-    let model: Handle<Scene> = asset_server.load("models/whole_snake.gltf#Node/head_01");
-    let body_model: Handle<Scene> = asset_server.load("models/whole_snake.gltf#Scene0#main_body");
-
+    info!("snake setup");
     let cell_coordinates = field.translation_of_cell(&start_settings.cell);
-    let head_translation = Vec3::new(cell_coordinates.x, 0.0, cell_coordinates.y);
+    let head_translation = Vec3::new(cell_coordinates.x, 0.5, cell_coordinates.y);
     let turn_moment = 0.3;
     let scaled_speed = start_settings.speed * field.cell_size();
     let cell_part_for_turn = 1.0 - (turn_moment * 2.0);
     let turn_speed = scaled_speed * 2.0 / cell_part_for_turn;
 
+    let scaling = 0.4;
+    let start_transform =
+        Transform::from_translation(head_translation).with_scale(Vec3::splat(scaling));
+
+    let meshes = [
+        assets_storage.handles[&SceneAssets::SnakeHead7].clone(),
+        assets_storage.handles[&SceneAssets::SnakeHead6].clone(),
+        assets_storage.handles[&SceneAssets::SnakeHead5].clone(),
+        assets_storage.handles[&SceneAssets::SnakeHead4].clone(),
+        assets_storage.handles[&SceneAssets::SnakeHead3].clone(),
+        assets_storage.handles[&SceneAssets::SnakeHead2].clone(),
+        assets_storage.handles[&SceneAssets::SnakeHead1].clone(),
+    ];
+
     let mut body_list = Vec::<Entity>::new();
-    for fragment_part in 0..100 {
+    for fragment_part in 0..15 {
+        let scene = if fragment_part < meshes.len() {
+            meshes[fragment_part].clone()
+        } else {
+            assets_storage.handles[&SceneAssets::SnakeMainBody].clone()
+        };
         let id = commands
             .spawn((
                 SceneBundle {
-                    scene: body_model.to_owned(),
-                    transform: Transform::from_translation(head_translation),
+                    scene,
+                    // visibility: Visibility::Hidden,
+                    transform: start_transform,
                     ..default()
                 },
                 DistancePassed(0.0),
-                Fragment(fragment_part),
+                Fragment(fragment_part as u32),
             ))
             .id();
         body_list.push(id);
     }
     commands.spawn((
         SceneBundle {
-            scene: model,
-            transform: Transform::from_translation(head_translation),
+            scene: assets_storage.handles[&SceneAssets::SnakeHead8].clone(),
+            transform: start_transform,
             ..default()
         },
         Player,
@@ -69,7 +82,7 @@ pub fn setup(
         DistancePassed(0.0),
         BodyInfo {
             body: body_list,
-            first_gap: 0.2,
+            first_gap: start_settings.gap,
             gap: start_settings.gap,
         },
     ));

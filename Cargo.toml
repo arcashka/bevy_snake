@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = { version = "0.12", features = ["jpeg"] }
+bevy = { version = "0.12", features = ["jpeg", "file_watcher"] }
 rand = "0.8.5"
-lazy_static = "1.4.0"
 
 [lints.clippy]
 type_complexity = "allow"

@@ -1,7 +1,6 @@
 use super::components::Direction;
 use crate::field::Cell;
 
-use bevy::gltf::Gltf;
 use bevy::prelude::*;
 
 #[derive(Resource)]
@@ -11,6 +10,3 @@ pub struct PlayerStartSetting {
     pub speed: f32,
     pub gap: f32,
 }
-
-#[derive(Resource)]
-pub struct PlayerModel(pub Handle<Gltf>);
