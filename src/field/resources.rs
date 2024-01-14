@@ -45,6 +45,7 @@ impl Field {
         }
     }
 
+    #[allow(dead_code)]
     pub fn cell_local_translation(&self, translation: Vec2) -> Vec2 {
         (translation - self.translation) % self.cell_size()
     }

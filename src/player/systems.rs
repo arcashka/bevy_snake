@@ -23,7 +23,7 @@ pub fn setup(
     info!("snake setup");
     let cell_coordinates = field.translation_of_cell(&start_settings.cell);
     let head_translation = Vec3::new(cell_coordinates.x, 0.5, cell_coordinates.y);
-    let turn_moment = 0.3;
+    let turn_moment = 0.0;
     let scaled_speed = start_settings.speed * field.cell_size();
     let cell_part_for_turn = 1.0 - (turn_moment * 2.0);
     let turn_speed = scaled_speed * 2.0 / cell_part_for_turn;
@@ -43,7 +43,7 @@ pub fn setup(
     ];
 
     let mut body_list = Vec::<Entity>::new();
-    for fragment_part in 0..15 {
+    for fragment_part in 0..50 {
         let scene = if fragment_part < meshes.len() {
             meshes[fragment_part].clone()
         } else {
@@ -170,20 +170,20 @@ pub fn handle_input(
     mut turning_query: Query<(&mut Turning, &Transform, &Direction), With<Player>>,
     mut input: ResMut<TurnRequestsBuffer>,
     mut new_cell_events: EventReader<MovedOntoNewCellEvent>,
-    field: Res<Field>,
+    // field: Res<Field>,
 ) {
-    for (mut turning, transform, direction) in turning_query.iter_mut() {
+    for (mut turning, _, direction) in turning_query.iter_mut() {
         if turning.0.is_some() {
             continue;
         }
-        let cell_local_translation = field.cell_local_translation(transform.translation.xz());
-        let cell_size = field.cell_size();
-        let cell_progress = match direction {
-            Direction::Left => (cell_size - cell_local_translation.x) / cell_size,
-            Direction::Right => cell_local_translation.x / cell_size,
-            Direction::Up => cell_local_translation.y / cell_size,
-            Direction::Down => (cell_size - cell_local_translation.y) / cell_size,
-        };
+        // let cell_local_translation = field.cell_local_translation(transform.translation.xz());
+        // let cell_size = field.cell_size();
+        // let cell_progress = match direction {
+        //     Direction::Left => (cell_size - cell_local_translation.x) / cell_size,
+        //     Direction::Right => cell_local_translation.x / cell_size,
+        //     Direction::Up => cell_local_translation.y / cell_size,
+        //     Direction::Down => (cell_size - cell_local_translation.y) / cell_size,
+        // };
 
         for _ in new_cell_events.read() {
             if let Some(turn_request) = input.pop() {

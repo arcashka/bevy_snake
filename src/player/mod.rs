@@ -28,8 +28,8 @@ impl Plugin for PlayerPlugin {
             .insert_resource(resources::PlayerStartSetting {
                 cell: Cell::new(4, 4),
                 direction: components::Direction::Right,
-                speed: 1.0,
-                gap: 0.2,
+                speed: 3.0,
+                gap: 0.1,
             });
     }
 }
