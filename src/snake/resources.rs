@@ -6,12 +6,6 @@ use std::borrow::Cow;
 pub struct SnakeBindGroup(pub BindGroup);
 
 #[derive(Resource)]
-pub struct SnakeBuffers {
-    pub storage_buffer: Buffer,
-    pub uniform_buffer: Buffer,
-}
-
-#[derive(Resource)]
 pub struct SnakePipeline {
     pub bind_group_layout: BindGroupLayout,
     pub pipeline: CachedComputePipelineId,

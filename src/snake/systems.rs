@@ -1,6 +1,6 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
 
-use super::components::Snake;
+use super::SnakeMesh;
 
 pub fn setup(
     mut commands: Commands,
@@ -34,5 +34,5 @@ pub fn setup(
         ..default()
     });
 
-    commands.spawn(Snake { size: 1.0 });
+    commands.spawn(SnakeMesh { size: 1.0 });
 }

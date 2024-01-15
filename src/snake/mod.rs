@@ -1,6 +1,7 @@
 mod components;
 mod gpu_systems;
 mod node;
+mod render_asset;
 mod resources;
 mod systems;
 
@@ -9,12 +10,11 @@ use bevy::{
     render::{render_graph::RenderGraph, Render, RenderApp, RenderSet},
 };
 
+pub use components::SnakeMesh;
+
 pub struct SnakePlugin;
 impl Plugin for SnakePlugin {
     fn build(&self, app: &mut App) {
-        // Extract the game of life image resource from the main world into the render world
-        // for operation on by the compute shader and display on the sprite.
-        app.insert_resource(ClearColor(Color::BLACK));
         app.add_systems(Startup, systems::setup);
 
         let render_app = app.sub_app_mut(RenderApp);
