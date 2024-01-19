@@ -3,15 +3,19 @@ use bevy::{
         lifetimeless::{SCommands, SRes},
         SystemParamItem,
     },
+    prelude::*,
     render::{
-        mesh::{GpuBufferInfo, GpuMesh, Mesh},
+        mesh::{GpuBufferInfo, GpuMesh, InnerMeshVertexBufferLayout, Mesh, MeshVertexBufferLayout},
         render_asset::{PrepareAssetError, RenderAsset},
-        render_resource::{BufferDescriptor, BufferUsages, IndexFormat, PrimitiveTopology, VertexAttribute, VertexFormat},
+        render_resource::{
+            BufferDescriptor, BufferUsages, IndexFormat, PrimitiveTopology, VertexAttribute,
+            VertexBufferLayout, VertexStepMode,
+        },
         renderer::RenderDevice,
     },
 };
 
-use super::components::SnakeMeshBuffers;
+use super::components::SnakeBuffers;
 use super::SnakeMesh;
 
 impl RenderAsset for SnakeMesh {
@@ -20,13 +24,15 @@ impl RenderAsset for SnakeMesh {
     type Param = (SRes<RenderDevice>, SCommands);
 
     fn extract_asset(&self) -> Self::ExtractedAsset {
+        info!("extract asset called");
         self.clone()
     }
 
     fn prepare_asset(
         mesh: Self::ExtractedAsset,
-        (render_device, mut commands): &mut SystemParamItem<Self::Param>,
+        (render_device, ref mut commands): &mut SystemParamItem<Self::Param>,
     ) -> Result<Self::PreparedAsset, PrepareAssetError<Self::ExtractedAsset>> {
+        info!("prepare asset called");
         let vertex_buffer = render_device.create_buffer(&BufferDescriptor {
             size: 1024,
             mapped_at_creation: false,
@@ -40,13 +46,17 @@ impl RenderAsset for SnakeMesh {
             usage: BufferUsages::STORAGE | BufferUsages::INDEX,
         });
 
+        info!("buffers created");
         commands.spawn((
             mesh,
-            SnakeMeshBuffers {
-                index_buffer,
-                vertex_buffer,
+            SnakeBuffers {
+                index_buffer: index_buffer.clone(),
+                vertex_buffer: vertex_buffer.clone(),
+                uniform_buffer: None,
+                bind_group: None,
             },
         ));
+        info!("SnakeBuffers spawned");
 
         let buffer_info = GpuBufferInfo::Indexed {
             buffer: index_buffer,
@@ -54,47 +64,28 @@ impl RenderAsset for SnakeMesh {
             index_format: IndexFormat::Uint32,
         };
 
-        let a = Mesh::ATTRIBUTE_POSITION;
-        let attributes = [
-            VertexAttribute {
-                shader_location: 0,
-                offset: 0,
-                format: VertexFormat::Float32x3,
-            },
-            VertexAttribute {
-                shader_location: 1,
-                offset: 12,
-                format: VertexFormat::Float32x3,
-            }
-        ];
-        let mut attributes = Vec::with_capacity(2);
-        let mut attribute_ids = Vec::with_capacity(2);
-        let mut accumulated_offset = 0;
-        for (index, data) in self.attributes.values().enumerate() {
-            attribute_ids.push(data.attribute.id);
-            attributes.push(VertexAttribute {
-                offset: accumulated_offset,
-                format: data.attribute.format,
-                shader_location: index as u32,
-            });
-            accumulated_offset += data.attribute.format.get_size();
-        }
-
-        MeshVertexBufferLayout::new(InnerMeshVertexBufferLayout {
-            layout: VertexBufferLayout {
-                array_stride: accumulated_offset,
+        let layout = MeshVertexBufferLayout::new(InnerMeshVertexBufferLayout::new(
+            [Mesh::ATTRIBUTE_POSITION.id].into(),
+            VertexBufferLayout {
+                array_stride: Mesh::ATTRIBUTE_POSITION.format.size(),
                 step_mode: VertexStepMode::Vertex,
-                attributes,
+                attributes: [VertexAttribute {
+                    shader_location: 0,
+                    offset: 0,
+                    format: Mesh::ATTRIBUTE_POSITION.format,
+                }]
+                .into(),
             },
-            attribute_ids,
-        })
+        ));
+        info!("layout created");
 
         Ok(GpuMesh {
             vertex_buffer,
             buffer_info,
             vertex_count: 4,
             primitive_topology: PrimitiveTopology::TriangleList,
-            layout:
+            morph_targets: None,
+            layout,
         })
     }
 }

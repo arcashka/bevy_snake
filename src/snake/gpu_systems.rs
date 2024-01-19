@@ -3,48 +3,65 @@ use bevy::render::render_resource::{
     BindGroupEntry, BufferDescriptor, BufferInitDescriptor, BufferUsages,
 };
 use bevy::render::renderer::RenderDevice;
+use bevy::render::Extract;
 
-use super::resources::{SnakeBindGroup, SnakeBuffers, SnakePipeline};
+use super::components::{RenderSnakeMeshInstance, SnakeBuffers};
+use super::resources::{SnakeBindGroup, SnakePipeline};
+use super::SnakeMesh;
 
-pub fn prepare_bind_group(
+pub fn extract_snake_meshes(
     mut commands: Commands,
-    pipeline: Res<SnakePipeline>,
-    snake_buffers: Res<SnakeBuffers>,
-    render_device: Res<RenderDevice>,
+    query: Extract<Query<(Entity, &ViewVisibility, &GlobalTransform, &SnakeMesh)>>,
 ) {
-    let bind_group = render_device.create_bind_group(
-        Some("Compute bind group"),
-        &pipeline.bind_group_layout,
-        &[
-            BindGroupEntry {
-                binding: 0,
-                resource: snake_buffers.uniform_buffer.as_entire_binding(),
-            },
-            BindGroupEntry {
-                binding: 1,
-                resource: snake_buffers.storage_buffer.as_entire_binding(),
-            },
-        ],
-    );
-    commands.insert_resource(SnakeBindGroup(bind_group));
+    let mut batch = Vec::new();
+    for (entity, visibility, transform, mesh) in query.iter() {
+        if visibility == &ViewVisibility::HIDDEN {
+            continue;
+        }
+        batch.push(RenderSnakeMeshInstance {
+            size: mesh.size,
+            transform: (&transform.affine()).into(),
+        });
+    }
+    commands.spawn_batch(batch);
 }
 
-pub fn create_buffers(mut commands: Commands, render_device: Res<RenderDevice>) {
-    let storage_buffer = render_device.create_buffer(&BufferDescriptor {
-        size: 1024,
-        mapped_at_creation: false,
-        label: Some("storage buffer for compute"),
-        usage: BufferUsages::STORAGE,
-    });
-    let uniform_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-        label: Some("uniform buffer for compute"),
-        usage: BufferUsages::UNIFORM,
-        #[allow(clippy::unnecessary_cast)]
-        // TODO: Replace 10.0 with size from Snake component
-        contents: &(10.0 as f32).to_ne_bytes(),
-    });
-    commands.insert_resource(SnakeBuffers {
-        storage_buffer,
-        uniform_buffer,
-    });
+pub fn prepare_bind_group(
+    mut snake_buffers: Query<&mut SnakeBuffers>,
+    pipeline: Res<SnakePipeline>,
+    render_device: Res<RenderDevice>,
+) {
+    for mut snake_buffers in snake_buffers.iter_mut() {
+        let bind_group = render_device.create_bind_group(
+            Some("Compute bind group"),
+            &pipeline.bind_group_layout,
+            &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: snake_buffers.index_buffer.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: snake_buffers.vertex_buffer.as_entire_binding(),
+                },
+            ],
+        );
+        snake_buffers.bind_group = Some(bind_group);
+        info!("inserted");
+    }
+}
+
+pub fn create_uniform_buffers(
+    mut snake_settings: Query<(&SnakeMesh, &mut SnakeBuffers)>,
+    render_device: Res<RenderDevice>,
+) {
+    for (snake, mut buffers) in snake_settings.iter_mut() {
+        let uniform_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("uniform buffer for compute"),
+            usage: BufferUsages::UNIFORM,
+            #[allow(clippy::unnecessary_cast)]
+            contents: &(snake.size as f32).to_ne_bytes(),
+        });
+        buffers.uniform_buffer = Some(uniform_buffer);
+    }
 }
