@@ -9,6 +9,8 @@ bevy = { path = "/home/arcashka/Documents/projects/other/bevy", version = "0.12"
     "file_watcher",
 ] }
 rand = "0.8.5"
+radsort = "0.1"
+bytemuck = "1.14"
 
 [lints.clippy]
 type_complexity = "allow"

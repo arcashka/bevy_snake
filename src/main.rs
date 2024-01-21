@@ -5,6 +5,7 @@ mod player;
 mod plugins;
 mod scene;
 mod snake;
+mod snake_mesh;
 mod states;
 
 use bevy::{prelude::*, render::camera::ScalingMode};
@@ -41,11 +42,18 @@ pub fn setup(
         ..default()
     });
 
-    commands.spawn((
-        snake::SnakeMesh { size: 1.0 },
-        TransformBundle::from_transform(Transform::from_xyz(0.0, 0.0, 0.0)),
-        Visibility::Visible,
-    ));
+    let snake_mesh_id = commands
+        .spawn((
+            snake_mesh::SnakeMesh { size: 1.0 },
+            materials.add(Color::ORANGE_RED.into()),
+            SpatialBundle {
+                transform: Transform::from_xyz(0.0, 0.0, 0.0),
+                visibility: Visibility::Visible,
+                ..default()
+            },
+        ))
+        .id();
+    info!("snake_mesh_id: {:?}", snake_mesh_id);
 }
 
 fn main() {
@@ -64,7 +72,7 @@ fn main() {
                 }),
                 ..default()
             }),
-            snake::SnakePlugin,
+            snake_mesh::SnakeMeshPlugin,
         ))
         .add_systems(Startup, setup)
         // .add_state::<states::GameState>()
