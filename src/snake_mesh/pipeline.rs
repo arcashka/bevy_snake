@@ -1,20 +1,13 @@
 use bevy::{
-    ecs::{
-        query::QueryItem,
-        system::{lifetimeless::SRes, SystemParamItem},
-    },
-    pbr::{MaterialBindGroupId, MaterialPipeline, MaterialPipelineKey},
+    pbr::{MaterialPipeline, MaterialPipelineKey},
     prelude::*,
     render::{
-        batching::GetBatchData,
         mesh::MeshVertexBufferLayout,
         render_resource::{
             RenderPipelineDescriptor, SpecializedMeshPipeline, SpecializedMeshPipelineError,
         },
     },
 };
-
-use super::{components::SnakeMeshMarker, resources::SnakeMeshInstances};
 
 #[derive(Resource)]
 pub struct SnakePipeline {
@@ -50,26 +43,5 @@ impl FromWorld for SnakePipeline {
         Self {
             material_pipeline: material_pipeline.clone(),
         }
-    }
-}
-
-impl GetBatchData for SnakePipeline {
-    type Param = SRes<SnakeMeshInstances>;
-    type Query = Entity;
-    type QueryFilter = With<SnakeMeshMarker>;
-    type CompareData = (MaterialBindGroupId, f32);
-    type BufferData = f32;
-
-    fn get_batch_data(
-        snake_mesh_instances: &SystemParamItem<Self::Param>,
-        entity: &QueryItem<Self::Query>,
-    ) -> (Self::BufferData, Option<Self::CompareData>) {
-        let instance = snake_mesh_instances
-            .get(entity)
-            .expect("Failed to find Snake Mesh Instance");
-        (
-            instance.size,
-            Some((instance.material_bind_group_id, instance.size)),
-        )
     }
 }

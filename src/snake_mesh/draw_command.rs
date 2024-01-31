@@ -22,8 +22,8 @@ pub struct DrawSnakeMesh;
 
 impl<P: PhaseItem> RenderCommand<P> for DrawSnakeMesh {
     type Param = ();
-    type ViewWorldQuery = ();
-    type ItemWorldQuery = Read<SnakeMeshBuffer>;
+    type ViewQuery = ();
+    type ItemQuery = Read<SnakeMeshBuffer>;
 
     #[inline]
     fn render<'w>(

@@ -8,7 +8,7 @@ mod resources;
 use bevy::{
     prelude::*,
     render::{
-        render_phase::{sort_phase_system, AddRenderCommand, DrawFunctions},
+        render_phase::{AddRenderCommand, DrawFunctions},
         render_resource::SpecializedMeshPipelines,
         Render, RenderApp, RenderSet,
     },
@@ -31,12 +31,7 @@ impl Plugin for SnakeMeshPlugin {
             .add_systems(
                 Render,
                 (
-                    // sort_phase_system::<phase_item::SnakePhaseItem>.in_set(RenderSet::PhaseSort),
                     gpu_systems::queue_snake_meshes.in_set(RenderSet::Queue),
-                    // batch_and_prepare_render_phase::<
-                    //     phase_item::SnakePhaseItem,
-                    //     pipeline::SnakePipeline,
-                    // >,
                     gpu_systems::prepare_buffers.in_set(RenderSet::PrepareResources),
                 ),
             )

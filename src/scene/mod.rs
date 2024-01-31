@@ -25,8 +25,6 @@ impl Plugin for ScenePlugin {
         let default_plugins = default_plugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Snake".into(),
-                // This requires css html, body {margin: 0;height: 100%;} as explained https://github.com/bevyengine/bevy/pull/4726
-                fit_canvas_to_parent: true,
                 ..default()
             }),
             ..default()

@@ -4,7 +4,7 @@ mod input;
 mod player;
 mod plugins;
 mod scene;
-mod snake;
+// mod snake;
 mod snake_mesh;
 mod states;
 
@@ -17,7 +17,7 @@ pub fn setup(
 ) {
     commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Box::default())),
-        material: materials.add(Color::GREEN.into()),
+        material: materials.add(Color::GREEN),
         transform: Transform::from_xyz(0.0, 0.0, 0.0),
         ..default()
     });
@@ -45,7 +45,7 @@ pub fn setup(
     let snake_mesh_id = commands
         .spawn((
             snake_mesh::SnakeMesh { size: 1.0 },
-            materials.add(Color::ORANGE_RED.into()),
+            materials.add(Color::ORANGE_RED),
             SpatialBundle {
                 transform: Transform::from_xyz(0.0, 0.0, 0.0),
                 visibility: Visibility::Visible,
