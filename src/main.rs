@@ -72,7 +72,7 @@ fn main() {
                 }),
                 ..default()
             }),
-            snake_mesh::SnakeMeshPlugin,
+            snake_mesh::SnakeMeshPlugin::<StandardMaterial>::default(),
         ))
         .add_systems(Startup, setup)
         // .add_state::<states::GameState>()

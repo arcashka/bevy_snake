@@ -9,18 +9,61 @@ use bevy::{
     },
 };
 
+use std::hash::Hash;
+
 #[derive(Resource)]
-pub struct SnakePipeline {
-    material_pipeline: MaterialPipeline<StandardMaterial>,
+pub struct SnakePipeline<M: Material> {
+    material_pipeline: MaterialPipeline<M>,
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-pub struct SnakePipelineKey {
-    pub material_pipeline_key: MaterialPipelineKey<StandardMaterial>,
+impl<M: Material> Eq for SnakePipelineKey<M> where M::Data: PartialEq {}
+
+impl<M: Material> PartialEq for SnakePipelineKey<M>
+where
+    M::Data: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.material_pipeline_key == other.material_pipeline_key
+    }
 }
 
-impl SpecializedMeshPipeline for SnakePipeline {
-    type Key = SnakePipelineKey;
+impl<M: Material> Clone for SnakePipelineKey<M>
+where
+    M::Data: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            material_pipeline_key: self.material_pipeline_key.clone(),
+        }
+    }
+}
+
+pub struct SnakePipelineKey<M: Material> {
+    pub material_pipeline_key: MaterialPipelineKey<M>,
+}
+
+impl<M: Material> Hash for SnakePipelineKey<M>
+where
+    M::Data: Hash,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.material_pipeline_key.hash(state);
+    }
+}
+
+impl<M: Material> Clone for SnakePipeline<M> {
+    fn clone(&self) -> Self {
+        Self {
+            material_pipeline: self.material_pipeline.clone(),
+        }
+    }
+}
+
+impl<M: Material> SpecializedMeshPipeline for SnakePipeline<M>
+where
+    M::Data: PartialEq + Eq + Hash + Clone,
+{
+    type Key = SnakePipelineKey<M>;
 
     fn specialize(
         &self,
@@ -35,9 +78,9 @@ impl SpecializedMeshPipeline for SnakePipeline {
     }
 }
 
-impl FromWorld for SnakePipeline {
+impl<M: Material> FromWorld for SnakePipeline<M> {
     fn from_world(world: &mut World) -> Self {
-        let material_pipeline = world.resource::<MaterialPipeline<StandardMaterial>>();
+        let material_pipeline = world.resource::<MaterialPipeline<M>>();
 
         info!("pipeline created from world");
         Self {
