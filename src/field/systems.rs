@@ -23,12 +23,12 @@ pub fn setup(
 
     let top_size = 2.0;
     let base_size = 2.0;
-    let mesh_top_handle = meshes.add(Mesh::from(shape::Box::new(
+    let mesh_top_handle = meshes.add(Mesh::from(Cuboid::new(
         field.size().x,
         top_size,
         field.size().y,
     )));
-    let mesh_base_handle = meshes.add(Mesh::from(shape::Box::new(
+    let mesh_base_handle = meshes.add(Mesh::from(Cuboid::new(
         field.size().x,
         base_size,
         field.size().y,

@@ -7,12 +7,12 @@ use bevy::{
         tonemapping::{DebandDither, Tonemapping},
     },
     pbr::{
-        alpha_mode_pipeline_key, environment_map::RenderViewEnvironmentMaps,
+        alpha_mode_pipeline_key, irradiance_volume::IrradianceVolume,
         screen_space_specular_transmission_pipeline_key, tonemapping_pipeline_key,
         MaterialBindGroupId, MaterialPipelineKey, MeshFlags, MeshPipelineKey, MeshTransforms,
         NotShadowReceiver, OpaqueRendererMethod, PreviousGlobalTransform, RenderMaterialInstances,
-        RenderMaterials, ScreenSpaceAmbientOcclusionSettings, ShadowFilteringMethod,
-        TransmittedShadowReceiver,
+        RenderMaterials, RenderViewLightProbes, ScreenSpaceAmbientOcclusionSettings,
+        ShadowFilteringMethod, TransmittedShadowReceiver,
     },
     prelude::*,
     render::{
@@ -69,7 +69,10 @@ pub fn queue_material_snakes<M: Material>(
         &mut RenderPhase<AlphaMask3d>,
         &mut RenderPhase<Transmissive3d>,
         &mut RenderPhase<Transparent3d>,
-        Has<RenderViewEnvironmentMaps>,
+        (
+            Has<RenderViewLightProbes<EnvironmentMapLight>>,
+            Has<RenderViewLightProbes<IrradianceVolume>>,
+        ),
     )>,
 ) where
     M::Data: PartialEq + Eq + Hash + Clone,
@@ -89,7 +92,7 @@ pub fn queue_material_snakes<M: Material>(
         mut alpha_mask_phase,
         mut transmissive_phase,
         mut transparent_phase,
-        has_environment_maps,
+        (has_environment_maps, _has_irradiance_volumes),
     ) in &mut views
     {
         let draw_opaque_pbr = opaque_draw_functions.read().id::<DrawSnake<M>>();
@@ -241,7 +244,7 @@ pub fn queue_material_snakes<M: Material>(
                             entity: *visible_entity,
                             draw_function: draw_opaque_pbr,
                             pipeline: pipeline_id,
-                            distance,
+                            asset_id: snake_instance.fake_mesh_asset,
                             batch_range: 0..1,
                             dynamic_offset: None,
                         });
@@ -292,17 +295,17 @@ pub fn prepare_buffers(
 ) {
     for (_, snake) in snake_mesh_instances.iter_mut() {
         let data = vec![
-            Vec3::new(-0.5, -0.5, 0.0),
-            Vec3::new(0.5, -0.5, 0.0),
-            Vec3::new(0.5, 0.5, 0.0),
-            Vec3::new(-0.5, -0.5, 0.0),
-            Vec3::new(0.5, 0.5, 0.0),
-            Vec3::new(-0.5, 0.5, 0.0),
+            Vec3::new(0.0, -5.0, -5.0),
+            Vec3::new(0.0, -5.0, 5.0),
+            Vec3::new(0.0, 5.0, 5.0),
+            Vec3::new(0.0, -5.0, -5.0),
+            Vec3::new(0.0, 5.0, 5.0),
+            Vec3::new(0.0, 5.0, -5.0),
         ];
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("Snake vertex data buffer"),
             contents: bytemuck::cast_slice(data.as_slice()),
-            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            usage: BufferUsages::VERTEX,
         });
         snake.buffer = Some(buffer);
         snake.buffer_length = 6;
@@ -360,6 +363,7 @@ pub fn extract_snakes(
         snake_mesh_instances.insert(
             entity,
             SnakeMeshInstance {
+                fake_mesh_asset: snake_mesh.fake_mesh_asset,
                 material_bind_group_id: MaterialBindGroupId::default(),
                 size: snake_mesh.size,
                 buffer: None,

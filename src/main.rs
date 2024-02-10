@@ -8,21 +8,20 @@ mod scene;
 mod snake_mesh;
 mod states;
 
-use bevy::{prelude::*, render::camera::ScalingMode};
+use bevy::{
+    pbr::PbrPlugin,
+    prelude::*,
+    render::{camera::ScalingMode, view::NoFrustumCulling},
+};
+use bevy_egui::EguiPlugin;
 
 pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Box::default())),
-        material: materials.add(Color::GREEN),
-        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-        ..default()
-    });
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(5.0, 5.0, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+        transform: Transform::from_xyz(10.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
         projection: Projection::Orthographic(OrthographicProjection {
             scaling_mode: ScalingMode::AutoMin {
                 min_width: 10.0,
@@ -42,18 +41,33 @@ pub fn setup(
         ..default()
     });
 
-    let snake_mesh_id = commands
-        .spawn((
-            snake_mesh::SnakeMesh { size: 1.0 },
-            materials.add(Color::ORANGE_RED),
-            SpatialBundle {
-                transform: Transform::from_xyz(0.0, 0.0, 0.0),
-                visibility: Visibility::Visible,
-                ..default()
-            },
-        ))
-        .id();
-    info!("snake_mesh_id: {:?}", snake_mesh_id);
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(Cuboid::default())),
+        material: materials.add(StandardMaterial {
+            base_color: Color::GREEN,
+            unlit: true,
+            ..default()
+        }),
+        transform: Transform::from_xyz(5.0, 0.0, 0.0),
+        ..default()
+    });
+    commands.spawn((
+        snake_mesh::SnakeMesh {
+            size: 1.0,
+            fake_mesh_asset: meshes.add(Cuboid::default()).into(),
+        },
+        materials.add(StandardMaterial {
+            base_color: Color::ORANGE_RED,
+            unlit: true,
+            ..default()
+        }),
+        SpatialBundle {
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            visibility: Visibility::Visible,
+            ..default()
+        },
+        NoFrustumCulling,
+    ));
 }
 
 fn main() {
@@ -64,16 +78,22 @@ fn main() {
             // player::PlayerPlugin,
             // field::FieldPlugin,
             // asset_loader::AssetLoaderPlugin,
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    // uncomment for unthrottled FPS
-                    // present_mode: bevy::window::PresentMode::AutoNoVsync,
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        // uncomment for unthrottled FPS
+                        // present_mode: bevy::window::PresentMode::AutoNoVsync,
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(PbrPlugin {
+                    prepass_enabled: false,
                     ..default()
                 }),
-                ..default()
-            }),
             snake_mesh::SnakeMeshPlugin::<StandardMaterial>::default(),
         ))
+        .add_plugins(EguiPlugin)
         .add_systems(Startup, setup)
         // .add_state::<states::GameState>()
         .run();

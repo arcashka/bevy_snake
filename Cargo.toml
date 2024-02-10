@@ -8,6 +8,7 @@ bevy = { path = "/home/arcashka/Documents/projects/other/bevy", features = [
     "jpeg",
     "file_watcher",
 ] }
+bevy_egui = { path = "/home/arcashka/Documents/projects/other/bevy_egui" }
 rand = "0.8.5"
 radsort = "0.1"
 bytemuck = "1.14"

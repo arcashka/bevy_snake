@@ -7,9 +7,11 @@ use bevy::{
 #[derive(Component, Copy, Clone, Debug, PartialEq)]
 pub struct SnakeMesh {
     pub size: f32,
+    pub fake_mesh_asset: AssetId<Mesh>,
 }
 
 pub struct SnakeMeshInstance {
+    pub fake_mesh_asset: AssetId<Mesh>,
     pub size: f32,
     pub material_bind_group_id: MaterialBindGroupId,
     pub buffer: Option<Buffer>,

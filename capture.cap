@@ -13,7 +13,7 @@
         ],
         "executable": "/home/arcashka/Documents/projects/other/bevy_snake/bevy_snake",
         "inject": false,
-        "numQueuedFrames": 1,
+        "numQueuedFrames": 0,
         "options": {
             "allowFullscreen": true,
             "allowVSync": true,
