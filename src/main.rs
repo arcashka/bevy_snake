@@ -7,13 +7,13 @@ mod scene;
 // mod snake;
 mod snake_mesh;
 mod states;
-
 use bevy::{
     pbr::PbrPlugin,
     prelude::*,
     render::{camera::ScalingMode, view::NoFrustumCulling},
 };
-use bevy_egui::EguiPlugin;
+
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub fn setup(
     mut commands: Commands,
@@ -91,9 +91,9 @@ fn main() {
                     prepass_enabled: false,
                     ..default()
                 }),
+            WorldInspectorPlugin::new(),
             snake_mesh::SnakeMeshPlugin::<StandardMaterial>::default(),
         ))
-        .add_plugins(EguiPlugin)
         .add_systems(Startup, setup)
         // .add_state::<states::GameState>()
         .run();

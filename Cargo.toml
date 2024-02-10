@@ -2,13 +2,14 @@
 name = "bevy_snake"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 [dependencies]
 bevy = { path = "/home/arcashka/Documents/projects/other/bevy", features = [
     "jpeg",
     "file_watcher",
 ] }
-bevy_egui = { path = "/home/arcashka/Documents/projects/other/bevy_egui" }
+bevy-inspector-egui = { path = "/home/arcashka/Documents/projects/other/bevy-inspector-egui/crates/bevy-inspector-egui" }
 rand = "0.8.5"
 radsort = "0.1"
 bytemuck = "1.14"
