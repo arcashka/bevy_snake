@@ -573,6 +573,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_flycam"
+version = "0.12.0"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_gilrs"
 version = "0.12.0"
 dependencies = [
@@ -878,6 +885,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
+ "bevy_flycam",
  "bytemuck",
  "radsort",
  "rand",

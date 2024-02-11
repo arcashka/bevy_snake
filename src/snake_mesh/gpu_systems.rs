@@ -295,12 +295,12 @@ pub fn prepare_buffers(
 ) {
     for (_, snake) in snake_mesh_instances.iter_mut() {
         let data = vec![
-            Vec3::new(0.0, -5.0, -5.0),
+            Vec3::new(0.0, 5.0, 5.0),
             Vec3::new(0.0, -5.0, 5.0),
+            Vec3::new(0.0, -5.0, -5.0),
+            Vec3::new(0.0, 5.0, -5.0),
             Vec3::new(0.0, 5.0, 5.0),
             Vec3::new(0.0, -5.0, -5.0),
-            Vec3::new(0.0, 5.0, 5.0),
-            Vec3::new(0.0, 5.0, -5.0),
         ];
         let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("Snake vertex data buffer"),
