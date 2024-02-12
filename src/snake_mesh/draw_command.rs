@@ -43,7 +43,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawSnakeMesh {
             return RenderCommandResult::Failure;
         };
         pass.set_vertex_buffer(0, snake_buffer.slice(..));
-        pass.draw(0..snake.buffer_length as u32, 0..1);
+        pass.draw(0..snake.vertex_count as u32, 0..1);
         RenderCommandResult::Success
     }
 }

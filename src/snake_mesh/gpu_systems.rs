@@ -9,10 +9,10 @@ use bevy::{
     pbr::{
         alpha_mode_pipeline_key, irradiance_volume::IrradianceVolume,
         screen_space_specular_transmission_pipeline_key, tonemapping_pipeline_key,
-        MaterialBindGroupId, MaterialPipelineKey, MeshFlags, MeshPipelineKey, MeshTransforms,
-        NotShadowReceiver, OpaqueRendererMethod, PreviousGlobalTransform, RenderMaterialInstances,
-        RenderMaterials, RenderViewLightProbes, ScreenSpaceAmbientOcclusionSettings,
-        ShadowFilteringMethod, TransmittedShadowReceiver,
+        MaterialPipelineKey, MeshFlags, MeshPipelineKey, MeshTransforms, NotShadowReceiver,
+        OpaqueRendererMethod, PreviousGlobalTransform, RenderMaterialInstances, RenderMaterials,
+        RenderViewLightProbes, ScreenSpaceAmbientOcclusionSettings, ShadowFilteringMethod,
+        TransmittedShadowReceiver,
     },
     prelude::*,
     render::{
@@ -20,8 +20,9 @@ use bevy::{
         mesh::{InnerMeshVertexBufferLayout, MeshVertexBufferLayout},
         render_phase::{DrawFunctions, RenderPhase},
         render_resource::{
-            BufferInitDescriptor, BufferUsages, PipelineCache, PrimitiveTopology,
-            SpecializedMeshPipelines, VertexAttribute, VertexBufferLayout, VertexStepMode,
+            BindGroupEntry, BufferDescriptor, BufferInitDescriptor, BufferUsages, PipelineCache,
+            PrimitiveTopology, SpecializedMeshPipelines, VertexAttribute, VertexBufferLayout,
+            VertexStepMode,
         },
         renderer::RenderDevice,
         view::{ExtractedView, VisibleEntities},
@@ -32,7 +33,7 @@ use bevy::{
 use super::{
     components::{SnakeMesh, SnakeMeshInstance},
     draw_command::DrawSnake,
-    pipeline::{SnakePipeline, SnakePipelineKey},
+    pipelines::{SnakeComputePipeline, SnakeMaterialPipeline, SnakeMaterialPipelineKey},
     resources::SnakeMeshInstances,
 };
 
@@ -42,8 +43,8 @@ pub fn queue_material_snakes<M: Material>(
     alpha_mask_draw_functions: Res<DrawFunctions<AlphaMask3d>>,
     transmissive_draw_functions: Res<DrawFunctions<Transmissive3d>>,
     transparent_draw_functions: Res<DrawFunctions<Transparent3d>>,
-    material_pipeline: Res<SnakePipeline<M>>,
-    mut pipelines: ResMut<SpecializedMeshPipelines<SnakePipeline<M>>>,
+    material_pipeline: Res<SnakeMaterialPipeline<M>>,
+    mut pipelines: ResMut<SpecializedMeshPipelines<SnakeMaterialPipeline<M>>>,
     pipeline_cache: Res<PipelineCache>,
     msaa: Res<Msaa>,
     render_materials: Res<RenderMaterials<M>>,
@@ -207,7 +208,7 @@ pub fn queue_material_snakes<M: Material>(
             let pipeline_id = pipelines.specialize(
                 &pipeline_cache,
                 &material_pipeline,
-                SnakePipelineKey {
+                SnakeMaterialPipelineKey {
                     material_pipeline_key: MaterialPipelineKey {
                         mesh_key,
                         bind_group_data: material.key.clone(),
@@ -222,8 +223,6 @@ pub fn queue_material_snakes<M: Material>(
                     continue;
                 }
             };
-
-            snake_instance.material_bind_group_id = material.get_bind_group_id();
 
             let distance = rangefinder
                 .distance_translation(&snake_instance.transforms.transform.translation)
@@ -289,26 +288,60 @@ pub fn queue_material_snakes<M: Material>(
     }
 }
 
-pub fn prepare_buffers(
+pub fn create_snake_buffers(
     render_device: Res<RenderDevice>,
     mut snake_mesh_instances: ResMut<SnakeMeshInstances>,
 ) {
     for (_, snake) in snake_mesh_instances.iter_mut() {
-        let data = vec![
-            Vec3::new(0.0, 5.0, 5.0),
-            Vec3::new(0.0, -5.0, 5.0),
-            Vec3::new(0.0, -5.0, -5.0),
-            Vec3::new(0.0, 5.0, -5.0),
-            Vec3::new(0.0, 5.0, 5.0),
-            Vec3::new(0.0, -5.0, -5.0),
-        ];
-        let buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("Snake vertex data buffer"),
-            contents: bytemuck::cast_slice(data.as_slice()),
-            usage: BufferUsages::VERTEX,
+        if snake.buffer.is_some() {
+            continue;
+        }
+        let buffer = render_device.create_buffer(&BufferDescriptor {
+            label: Some("Snake buffer"),
+            size: 1024,
+            usage: BufferUsages::VERTEX | BufferUsages::STORAGE,
+            mapped_at_creation: false,
         });
         snake.buffer = Some(buffer);
-        snake.buffer_length = 6;
+        snake.vertex_count = 6;
+    }
+}
+
+pub fn prepare_snake_compute_bind_groups(
+    render_device: Res<RenderDevice>,
+    snake_compute_pipeline: Res<SnakeComputePipeline>,
+    mut snake_mesh_instances: ResMut<SnakeMeshInstances>,
+) {
+    for (_, snake) in snake_mesh_instances.iter_mut() {
+        if snake.compute_bind_group.is_some() {
+            continue;
+        }
+        let Some(vertex_buffer) = snake.buffer.as_ref() else {
+            error!("Snake buffer is None");
+            return;
+        };
+        let uniform_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("Snake uniform buffer"),
+            contents: bytemuck::bytes_of(&snake.size),
+            usage: BufferUsages::UNIFORM,
+        });
+
+        let bind_group = render_device.create_bind_group(
+            None,
+            &snake_compute_pipeline.compute_bind_group_layout,
+            &[
+                BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: vertex_buffer.as_entire_binding(),
+                },
+            ],
+        );
+        snake.compute_bind_group = Some(bind_group);
+        snake.vertex_count = 6;
     }
 }
 
@@ -364,10 +397,10 @@ pub fn extract_snakes(
             entity,
             SnakeMeshInstance {
                 fake_mesh_asset: snake_mesh.fake_mesh_asset,
-                material_bind_group_id: MaterialBindGroupId::default(),
                 size: snake_mesh.size,
                 buffer: None,
-                buffer_length: 0,
+                compute_bind_group: None,
+                vertex_count: 0,
                 transforms,
             },
         );

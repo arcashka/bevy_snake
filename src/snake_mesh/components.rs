@@ -1,7 +1,7 @@
 use bevy::{
-    pbr::{MaterialBindGroupId, MeshTransforms},
+    pbr::MeshTransforms,
     prelude::*,
-    render::render_resource::Buffer,
+    render::render_resource::{BindGroup, Buffer},
 };
 
 #[derive(Component, Copy, Clone, Debug, PartialEq)]
@@ -13,8 +13,8 @@ pub struct SnakeMesh {
 pub struct SnakeMeshInstance {
     pub fake_mesh_asset: AssetId<Mesh>,
     pub size: f32,
-    pub material_bind_group_id: MaterialBindGroupId,
     pub buffer: Option<Buffer>,
-    pub buffer_length: usize,
+    pub compute_bind_group: Option<BindGroup>,
+    pub vertex_count: usize,
     pub transforms: MeshTransforms,
 }
