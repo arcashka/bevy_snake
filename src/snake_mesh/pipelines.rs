@@ -1,7 +1,9 @@
 use bevy::{
-    pbr::{MaterialPipeline, MaterialPipelineKey},
+    ecs::system::{lifetimeless::SRes, SystemParamItem},
+    pbr::{MaterialPipeline, MaterialPipelineKey, MeshUniform},
     prelude::*,
     render::{
+        batching::GetBatchData,
         mesh::MeshVertexBufferLayout,
         render_resource::{
             binding_types, BindGroupLayout, BindGroupLayoutEntries, CachedComputePipelineId,
@@ -13,6 +15,8 @@ use bevy::{
 };
 
 use std::{borrow::Cow, hash::Hash, num::NonZeroU64};
+
+use super::resources::SnakeMeshInstances;
 
 #[derive(Resource)]
 pub struct SnakeMaterialPipeline<M: Material> {
@@ -82,8 +86,22 @@ where
         let descriptor = self
             .material_pipeline
             .specialize(key.material_pipeline_key, layout)?;
-        info!("pipeline created");
         Ok(descriptor)
+    }
+}
+
+impl<M: Material> GetBatchData for SnakeMaterialPipeline<M> {
+    type Param = SRes<SnakeMeshInstances>;
+    type CompareData = ();
+
+    type BufferData = MeshUniform;
+
+    fn get_batch_data(
+        snake_instances: &SystemParamItem<Self::Param>,
+        entity: Entity,
+    ) -> Option<(Self::BufferData, Option<Self::CompareData>)> {
+        let snake = snake_instances.get(&entity)?;
+        Some((MeshUniform::new(&snake.transforms, None), None))
     }
 }
 

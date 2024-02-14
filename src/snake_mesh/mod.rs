@@ -15,14 +15,15 @@ use bevy::{
     },
     prelude::*,
     render::{
-        render_graph::RenderGraphApp, render_phase::AddRenderCommand,
-        render_resource::SpecializedMeshPipelines, Render, RenderApp, RenderSet,
+        batching::batch_and_prepare_render_phase, render_graph::RenderGraphApp,
+        render_phase::AddRenderCommand, render_resource::SpecializedMeshPipelines, Render,
+        RenderApp, RenderSet,
     },
 };
 
 pub use components::SnakeMesh;
 
-use self::node::{SnakeComputeNode, SnakeComputeNodeLabel};
+use node::{SnakeComputeNode, SnakeComputeNodeLabel};
 
 pub struct SnakeMeshPlugin<M: Material> {
     pub _marker: PhantomData<M>,
@@ -48,6 +49,25 @@ where
                 (
                     gpu_systems::queue_material_snakes::<M>.in_set(RenderSet::Queue),
                     gpu_systems::create_snake_buffers.in_set(RenderSet::PrepareResources),
+                    (
+                        batch_and_prepare_render_phase::<
+                            Transmissive3d,
+                            pipelines::SnakeMaterialPipeline<M>,
+                        >,
+                        batch_and_prepare_render_phase::<
+                            Transparent3d,
+                            pipelines::SnakeMaterialPipeline<M>,
+                        >,
+                        batch_and_prepare_render_phase::<
+                            Opaque3d,
+                            pipelines::SnakeMaterialPipeline<M>,
+                        >,
+                        batch_and_prepare_render_phase::<
+                            AlphaMask3d,
+                            pipelines::SnakeMaterialPipeline<M>,
+                        >,
+                    )
+                        .in_set(RenderSet::PrepareResources),
                     gpu_systems::prepare_snake_compute_bind_groups
                         .in_set(RenderSet::PrepareBindGroups),
                 ),

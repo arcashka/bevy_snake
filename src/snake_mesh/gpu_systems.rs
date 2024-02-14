@@ -31,10 +31,10 @@ use bevy::{
 };
 
 use super::{
-    components::{SnakeMesh, SnakeMeshInstance},
+    components::SnakeMesh,
     draw_command::DrawSnake,
     pipelines::{SnakeComputePipeline, SnakeMaterialPipeline, SnakeMaterialPipelineKey},
-    resources::SnakeMeshInstances,
+    resources::{SnakeMeshInstance, SnakeMeshInstances},
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -293,7 +293,7 @@ pub fn create_snake_buffers(
     mut snake_mesh_instances: ResMut<SnakeMeshInstances>,
 ) {
     for (_, snake) in snake_mesh_instances.iter_mut() {
-        if snake.buffer.is_some() {
+        if snake.vertex_buffer.is_some() {
             continue;
         }
         let buffer = render_device.create_buffer(&BufferDescriptor {
@@ -302,7 +302,7 @@ pub fn create_snake_buffers(
             usage: BufferUsages::VERTEX | BufferUsages::STORAGE,
             mapped_at_creation: false,
         });
-        snake.buffer = Some(buffer);
+        snake.vertex_buffer = Some(buffer);
         snake.vertex_count = 6;
     }
 }
@@ -316,7 +316,7 @@ pub fn prepare_snake_compute_bind_groups(
         if snake.compute_bind_group.is_some() {
             continue;
         }
-        let Some(vertex_buffer) = snake.buffer.as_ref() else {
+        let Some(vertex_buffer) = snake.vertex_buffer.as_ref() else {
             error!("Snake buffer is None");
             return;
         };
@@ -398,7 +398,7 @@ pub fn extract_snakes(
             SnakeMeshInstance {
                 fake_mesh_asset: snake_mesh.fake_mesh_asset,
                 size: snake_mesh.size,
-                buffer: None,
+                vertex_buffer: None,
                 compute_bind_group: None,
                 vertex_count: 0,
                 transforms,
