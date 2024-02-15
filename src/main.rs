@@ -10,7 +10,7 @@ mod states;
 use bevy::{pbr::PbrPlugin, prelude::*};
 
 use bevy_flycam::PlayerPlugin;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
 
 pub fn setup(
     mut commands: Commands,
@@ -79,6 +79,7 @@ fn main() {
             snake_mesh::SnakeMeshPlugin::<StandardMaterial>::default(),
         ))
         .add_systems(Startup, setup)
+        .register_type::<snake_mesh::SnakeMesh>()
         // .add_state::<states::GameState>()
         .run();
 }
