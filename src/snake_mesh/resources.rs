@@ -1,12 +1,12 @@
 use bevy::{
+    ecs::entity::EntityHashMap,
     pbr::MeshTransforms,
     prelude::*,
     render::render_resource::{BindGroup, Buffer},
-    utils::EntityHashMap,
 };
 
 #[derive(Default, Resource, Deref, DerefMut)]
-pub struct SnakeMeshInstances(EntityHashMap<Entity, SnakeMeshInstance>);
+pub struct SnakeMeshInstances(EntityHashMap<SnakeMeshInstance>);
 
 pub struct SnakeMeshInstance {
     pub fake_mesh_asset: AssetId<Mesh>,

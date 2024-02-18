@@ -10,7 +10,7 @@ mod states;
 use bevy::{pbr::PbrPlugin, prelude::*};
 
 use bevy_flycam::PlayerPlugin;
-use bevy_inspector_egui::{quick::WorldInspectorPlugin, DefaultInspectorConfigPlugin};
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub fn setup(
     mut commands: Commands,

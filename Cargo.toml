@@ -10,7 +10,7 @@ bevy = { path = "/home/arcashka/Documents/projects/other/bevy", features = [
     "file_watcher",
 ] }
 bevy-inspector-egui = { path = "/home/arcashka/Documents/projects/other/bevy-inspector-egui/crates/bevy-inspector-egui" }
-bevy_flycam = { path = "/home/arcashka/Documents/projects/other/bevy_flycam_fork" }
+bevy_flycam = { path = "/home/arcashka/Documents/projects/other/bevy_flycam" }
 rand = "0.8.5"
 radsort = "0.1"
 bytemuck = "1.14"

@@ -28,7 +28,7 @@ impl<P: PhaseItem> RenderCommand<P> for DrawSnakeMesh {
     fn render<'w>(
         item: &P,
         _: (),
-        _: (),
+        _: Option<()>,
         snake_instances: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -58,7 +58,7 @@ impl<P: PhaseItem, const I: usize> RenderCommand<P> for SetSnakeBindGroup<I> {
     fn render<'w>(
         _item: &P,
         _view: (),
-        _item_query: (),
+        _: Option<()>,
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {

@@ -21,6 +21,7 @@ impl Plugin for ScenePlugin {
                 features: WgpuFeatures::POLYGON_MODE_LINE,
                 ..default()
             }),
+            synchronous_pipeline_compilation: false,
         });
         let default_plugins = default_plugins.set(WindowPlugin {
             primary_window: Some(Window {

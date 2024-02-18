@@ -10,7 +10,7 @@ use std::marker::PhantomData;
 
 use bevy::{
     core_pipeline::core_3d::{
-        graph::{Labels3d, SubGraph3d},
+        graph::{Core3d, Node3d},
         AlphaMask3d, Opaque3d, Transmissive3d, Transparent3d,
     },
     prelude::*,
@@ -78,8 +78,8 @@ where
             .add_render_command::<AlphaMask3d, draw_command::DrawSnake<M>>()
             .init_resource::<SpecializedMeshPipelines<pipelines::SnakeMaterialPipeline<M>>>()
             .init_resource::<resources::SnakeMeshInstances>()
-            .add_render_graph_node::<SnakeComputeNode>(SubGraph3d, SnakeComputeNodeLabel)
-            .add_render_graph_edge(SubGraph3d, SnakeComputeNodeLabel, Labels3d::StartMainPass);
+            .add_render_graph_node::<SnakeComputeNode>(Core3d, SnakeComputeNodeLabel)
+            .add_render_graph_edge(Core3d, SnakeComputeNodeLabel, Node3d::StartMainPass);
     }
 
     fn finish(&self, app: &mut App) {
