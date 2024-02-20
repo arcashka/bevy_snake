@@ -76,7 +76,7 @@ fn main() {
                 }),
             WorldInspectorPlugin::new(),
             PlayerPlugin,
-            snake_mesh::SnakeMeshPlugin::<StandardMaterial>::default(),
+            snake_mesh::SnakeMeshPlugin,
         ))
         .add_systems(Startup, setup)
         .register_type::<snake_mesh::SnakeMesh>()

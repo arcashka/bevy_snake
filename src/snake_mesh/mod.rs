@@ -5,9 +5,6 @@ mod node;
 mod pipelines;
 mod resources;
 
-use std::hash::Hash;
-use std::marker::PhantomData;
-
 use bevy::{
     core_pipeline::core_3d::{
         graph::{Core3d, Node3d},
@@ -25,46 +22,34 @@ pub use components::SnakeMesh;
 
 use node::{SnakeComputeNode, SnakeComputeNodeLabel};
 
-pub struct SnakeMeshPlugin<M: Material> {
-    pub _marker: PhantomData<M>,
-}
+#[derive(Default)]
+pub struct SnakeMeshPlugin;
 
-impl Default for SnakeMeshPlugin<StandardMaterial> {
-    fn default() -> Self {
-        Self {
-            _marker: PhantomData,
-        }
-    }
-}
-
-impl<M: Material> Plugin for SnakeMeshPlugin<M>
-where
-    M::Data: PartialEq + Eq + Hash + Clone,
-{
+impl Plugin for SnakeMeshPlugin {
     fn build(&self, app: &mut App) {
         app.sub_app_mut(RenderApp)
             .add_systems(ExtractSchedule, (gpu_systems::extract_snakes,))
             .add_systems(
                 Render,
                 (
-                    gpu_systems::queue_material_snakes::<M>.in_set(RenderSet::Queue),
+                    gpu_systems::queue_material_snakes::<StandardMaterial>.in_set(RenderSet::Queue),
                     gpu_systems::create_snake_buffers.in_set(RenderSet::PrepareResources),
                     (
                         batch_and_prepare_render_phase::<
                             Transmissive3d,
-                            pipelines::SnakeMaterialPipeline<M>,
+                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
                         >,
                         batch_and_prepare_render_phase::<
                             Transparent3d,
-                            pipelines::SnakeMaterialPipeline<M>,
+                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
                         >,
                         batch_and_prepare_render_phase::<
                             Opaque3d,
-                            pipelines::SnakeMaterialPipeline<M>,
+                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
                         >,
                         batch_and_prepare_render_phase::<
                             AlphaMask3d,
-                            pipelines::SnakeMaterialPipeline<M>,
+                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
                         >,
                     )
                         .in_set(RenderSet::PrepareResources),
@@ -72,11 +57,11 @@ where
                         .in_set(RenderSet::PrepareBindGroups),
                 ),
             )
-            .add_render_command::<Transmissive3d, draw_command::DrawSnake<M>>()
-            .add_render_command::<Transparent3d, draw_command::DrawSnake<M>>()
-            .add_render_command::<Opaque3d, draw_command::DrawSnake<M>>()
-            .add_render_command::<AlphaMask3d, draw_command::DrawSnake<M>>()
-            .init_resource::<SpecializedMeshPipelines<pipelines::SnakeMaterialPipeline<M>>>()
+            .add_render_command::<Transmissive3d, draw_command::DrawSnake<StandardMaterial>>()
+            .add_render_command::<Transparent3d, draw_command::DrawSnake<StandardMaterial>>()
+            .add_render_command::<Opaque3d, draw_command::DrawSnake<StandardMaterial>>()
+            .add_render_command::<AlphaMask3d, draw_command::DrawSnake<StandardMaterial>>()
+            .init_resource::<SpecializedMeshPipelines<pipelines::SnakeMaterialPipeline<StandardMaterial>>>()
             .init_resource::<resources::SnakeMeshInstances>()
             .add_render_graph_node::<SnakeComputeNode>(Core3d, SnakeComputeNodeLabel)
             .add_render_graph_edge(Core3d, SnakeComputeNodeLabel, Node3d::StartMainPass);
@@ -84,7 +69,7 @@ where
 
     fn finish(&self, app: &mut App) {
         app.sub_app_mut(RenderApp)
-            .init_resource::<pipelines::SnakeMaterialPipeline<M>>()
+            .init_resource::<pipelines::SnakeMaterialPipeline<StandardMaterial>>()
             .init_resource::<pipelines::SnakeComputePipeline>();
     }
 }
