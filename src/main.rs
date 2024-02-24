@@ -11,6 +11,7 @@ use bevy::{pbr::PbrPlugin, prelude::*};
 
 use bevy_flycam::PlayerPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use snake_mesh::PolygonizationSettings;
 
 pub fn setup(
     mut commands: Commands,
@@ -38,11 +39,18 @@ pub fn setup(
     });
     commands.spawn((
         snake_mesh::SnakeMesh {
-            size: 1.0,
+            radius: 5.0,
+            center: Vec3::new(0.0, 0.0, 0.0),
             fake_mesh_asset: meshes.add(Cuboid::default()).into(),
+        },
+        PolygonizationSettings {
+            grid_size: Vec3::new(8.0, 8.0, 8.0),
+            grid_origin: Vec3::new(-4.0, -4.0, -4.0),
         },
         materials.add(StandardMaterial {
             base_color: Color::ORANGE_RED,
+            unlit: true,
+            cull_mode: None,
             ..default()
         }),
         SpatialBundle {

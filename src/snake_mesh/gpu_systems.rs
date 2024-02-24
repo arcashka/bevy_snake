@@ -21,8 +21,8 @@ use bevy::{
         render_phase::{DrawFunctions, RenderPhase},
         render_resource::{
             BindGroupEntry, BufferDescriptor, BufferInitDescriptor, BufferUsages, PipelineCache,
-            PrimitiveTopology, SpecializedMeshPipelines, VertexAttribute, VertexBufferLayout,
-            VertexStepMode,
+            PrimitiveTopology, ShaderType, SpecializedMeshPipelines, VertexAttribute,
+            VertexBufferLayout, VertexStepMode,
         },
         renderer::RenderDevice,
         view::{ExtractedView, VisibleEntities},
@@ -31,10 +31,10 @@ use bevy::{
 };
 
 use super::{
-    components::SnakeMesh,
     draw_command::DrawSnake,
     pipelines::{SnakeComputePipeline, SnakeMaterialPipeline, SnakeMaterialPipelineKey},
-    resources::{SnakeMeshInstance, SnakeMeshInstances},
+    resources::{SnakeMeshInstance, SnakeMeshInstances, SnakeMeshUniforms},
+    PolygonizationSettings, SnakeMesh,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -288,22 +288,82 @@ pub fn queue_material_snakes<M: Material>(
     }
 }
 
+// used only to get it's sideof
+#[derive(ShaderType)]
+#[repr(C)]
+pub struct DrawIndexedIndirect {
+    index_count: u32,
+    instance_count: u32,
+    first_index: u32,
+    vertex_offset: i32,
+    first_instance: u32,
+}
+
 pub fn create_snake_buffers(
     render_device: Res<RenderDevice>,
     mut snake_mesh_instances: ResMut<SnakeMeshInstances>,
 ) {
     for (_, snake) in snake_mesh_instances.iter_mut() {
-        if snake.vertex_buffer.is_some() {
-            continue;
+        // vbo
+        if snake.vertex_buffer.is_none() {
+            let vertex_buffer = render_device.create_buffer(&BufferDescriptor {
+                label: Some("snake vertex buffer"),
+                size: 1024 * 16,
+                usage: BufferUsages::VERTEX | BufferUsages::STORAGE,
+                mapped_at_creation: false,
+            });
+            snake.vertex_buffer = Some(vertex_buffer);
         }
-        let buffer = render_device.create_buffer(&BufferDescriptor {
-            label: Some("Snake buffer"),
-            size: 1024,
-            usage: BufferUsages::VERTEX | BufferUsages::STORAGE,
-            mapped_at_creation: false,
+
+        // ibo
+        if snake.index_buffer.is_none() {
+            let index_buffer = render_device.create_buffer(&BufferDescriptor {
+                label: Some("snake index buffer"),
+                size: 1024 * 16,
+                usage: BufferUsages::INDEX | BufferUsages::STORAGE,
+                mapped_at_creation: false,
+            });
+            snake.index_buffer = Some(index_buffer);
+        }
+
+        // cells
+        if snake.cell_buffer.is_none() {
+            let cells_buffer = render_device.create_buffer(&BufferDescriptor {
+                label: Some("Snake cells buffer"),
+                size: 1024 * 16,
+                usage: BufferUsages::STORAGE,
+                mapped_at_creation: false,
+            });
+            snake.cell_buffer = Some(cells_buffer);
+        }
+
+        // uniform
+        // TODO: write new values instead of recreating this 2 buffers
+        let uniform_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("Snake uniform buffer"),
+            contents: bytemuck::bytes_of(&snake.uniforms),
+            usage: BufferUsages::UNIFORM,
         });
-        snake.vertex_buffer = Some(buffer);
-        snake.vertex_count = 6;
+        snake.uniform_buffer = Some(uniform_buffer);
+
+        // atomics
+        let atomics_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
+            label: Some("Snake atomics buffer"),
+            contents: bytemuck::bytes_of(&[0.0, 0.0]),
+            usage: BufferUsages::STORAGE,
+        });
+        snake.atomics_buffer = Some(atomics_buffer);
+
+        // indirect
+        if snake.indirect_buffer.is_none() {
+            let indirect_buffer = render_device.create_buffer(&BufferDescriptor {
+                label: Some("Snake indirect buffer"),
+                size: std::mem::size_of::<DrawIndexedIndirect>() as u64,
+                usage: BufferUsages::STORAGE | BufferUsages::INDIRECT,
+                mapped_at_creation: false,
+            });
+            snake.indirect_buffer = Some(indirect_buffer);
+        }
     }
 }
 
@@ -316,15 +376,30 @@ pub fn prepare_snake_compute_bind_groups(
         if snake.compute_bind_group.is_some() {
             continue;
         }
-        let Some(vertex_buffer) = snake.vertex_buffer.as_ref() else {
-            error!("Snake buffer is None");
+        let Some(uniform_buffer) = snake.uniform_buffer.as_ref() else {
+            error!("Snake uniform buffer is None");
             return;
         };
-        let uniform_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
-            label: Some("Snake uniform buffer"),
-            contents: bytemuck::bytes_of(&snake.size),
-            usage: BufferUsages::UNIFORM,
-        });
+        let Some(vertex_buffer) = snake.vertex_buffer.as_ref() else {
+            error!("Snake vertex buffer is None");
+            return;
+        };
+        let Some(index_buffer) = snake.index_buffer.as_ref() else {
+            error!("Snake index buffer is None");
+            return;
+        };
+        let Some(cell_buffer) = snake.cell_buffer.as_ref() else {
+            error!("Snake cell buffer is None");
+            return;
+        };
+        let Some(atomics_buffer) = snake.atomics_buffer.as_ref() else {
+            error!("Snake atomics buffer is None");
+            return;
+        };
+        let Some(indirect_buffer) = snake.indirect_buffer.as_ref() else {
+            error!("Snake indirect buffer is None");
+            return;
+        };
 
         let bind_group = render_device.create_bind_group(
             None,
@@ -338,10 +413,25 @@ pub fn prepare_snake_compute_bind_groups(
                     binding: 1,
                     resource: vertex_buffer.as_entire_binding(),
                 },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: index_buffer.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 3,
+                    resource: cell_buffer.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 4,
+                    resource: atomics_buffer.as_entire_binding(),
+                },
+                BindGroupEntry {
+                    binding: 5,
+                    resource: indirect_buffer.as_entire_binding(),
+                },
             ],
         );
         snake.compute_bind_group = Some(bind_group);
-        snake.vertex_count = 6;
     }
 }
 
@@ -352,6 +442,7 @@ pub fn extract_snakes(
         Query<(
             Entity,
             &SnakeMesh,
+            &PolygonizationSettings,
             &ViewVisibility,
             &GlobalTransform,
             Option<&PreviousGlobalTransform>,
@@ -364,6 +455,7 @@ pub fn extract_snakes(
     for (
         entity,
         snake_mesh,
+        polygonization_settings,
         view_visibility,
         transform,
         previous_transform,
@@ -397,8 +489,18 @@ pub fn extract_snakes(
             entity,
             SnakeMeshInstance {
                 fake_mesh_asset: snake_mesh.fake_mesh_asset,
-                size: snake_mesh.size,
+                uniforms: SnakeMeshUniforms::new(
+                    polygonization_settings.grid_size,
+                    polygonization_settings.grid_origin,
+                    snake_mesh.center,
+                    snake_mesh.radius,
+                ),
                 vertex_buffer: None,
+                index_buffer: None,
+                cell_buffer: None,
+                uniform_buffer: None,
+                atomics_buffer: None,
+                indirect_buffer: None,
                 compute_bind_group: None,
                 vertex_count: 0,
                 transforms,

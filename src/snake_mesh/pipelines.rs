@@ -16,7 +16,9 @@ use bevy::{
 
 use std::{borrow::Cow, hash::Hash, num::NonZeroU64};
 
-use super::resources::SnakeMeshInstances;
+use crate::snake_mesh::resources::SnakeMeshUniforms;
+
+use super::{gpu_systems::DrawIndexedIndirect, resources::SnakeMeshInstances};
 
 #[derive(Resource)]
 pub struct SnakeMaterialPipeline<M: Material> {
@@ -26,7 +28,9 @@ pub struct SnakeMaterialPipeline<M: Material> {
 #[derive(Resource)]
 pub struct SnakeComputePipeline {
     pub compute_bind_group_layout: BindGroupLayout,
-    pub pipeline: CachedComputePipelineId,
+    pub find_vertices_pipeline: CachedComputePipelineId,
+    pub connect_vertices_pipeline: CachedComputePipelineId,
+    pub prepare_indirect_buffer_pipeline: CachedComputePipelineId,
 }
 
 impl<M: Material> Eq for SnakeMaterialPipelineKey<M> where M::Data: PartialEq {}
@@ -121,10 +125,20 @@ impl FromWorld for SnakeComputePipeline {
         let compute_bind_group_layout = render_device.create_bind_group_layout(
             "snake compute bind group layout",
             &BindGroupLayoutEntries::sequential(
-                ShaderStages::VERTEX | ShaderStages::COMPUTE,
+                ShaderStages::COMPUTE,
                 (
-                    binding_types::uniform_buffer::<f32>(false),
+                    // Uniforms
+                    binding_types::uniform_buffer::<SnakeMeshUniforms>(false),
+                    // VBO
                     binding_types::storage_buffer_sized(false, NonZeroU64::new(1024)),
+                    // IBO
+                    binding_types::storage_buffer_sized(false, NonZeroU64::new(1024)),
+                    // Cells, Intermediate buffer
+                    binding_types::storage_buffer_sized(false, NonZeroU64::new(1024)),
+                    // Atomics
+                    binding_types::storage_buffer_sized(false, None),
+                    // indirect
+                    binding_types::storage_buffer::<DrawIndexedIndirect>(false),
                 ),
             ),
         );
@@ -133,18 +147,41 @@ impl FromWorld for SnakeComputePipeline {
             .resource::<AssetServer>()
             .load("shaders/snake_compute.wgsl");
         let pipeline_cache = world.resource::<PipelineCache>();
-        let pipeline = pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
-            label: Some("snake compute pipeline".into()),
-            layout: vec![compute_bind_group_layout.clone()],
-            push_constant_ranges: Vec::new(),
-            shader: shader.clone(),
-            shader_defs: vec![],
-            entry_point: Cow::from("main"),
-        });
+        let find_vertices_pipeline =
+            pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+                label: Some("snake find_vertices pipeline".into()),
+                layout: vec![compute_bind_group_layout.clone()],
+                push_constant_ranges: Vec::new(),
+                shader: shader.clone(),
+                shader_defs: vec![],
+                entry_point: Cow::from("find_vertices"),
+            });
+
+        let connect_vertices_pipeline =
+            pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+                label: Some("snake connect_vertices pipeline".into()),
+                layout: vec![compute_bind_group_layout.clone()],
+                push_constant_ranges: Vec::new(),
+                shader: shader.clone(),
+                shader_defs: vec![],
+                entry_point: Cow::from("connect_vertices"),
+            });
+
+        let prepare_indirect_buffer_pipeline =
+            pipeline_cache.queue_compute_pipeline(ComputePipelineDescriptor {
+                label: Some("snake prepare_indirect_buffer pipeline".into()),
+                layout: vec![compute_bind_group_layout.clone()],
+                push_constant_ranges: Vec::new(),
+                shader: shader.clone(),
+                shader_defs: vec![],
+                entry_point: Cow::from("prepare_indirect_buffer"),
+            });
 
         SnakeComputePipeline {
             compute_bind_group_layout,
-            pipeline,
+            find_vertices_pipeline,
+            connect_vertices_pipeline,
+            prepare_indirect_buffer_pipeline,
         }
     }
 }

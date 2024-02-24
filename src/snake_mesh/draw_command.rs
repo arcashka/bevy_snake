@@ -2,8 +2,11 @@ use bevy::{
     ecs::system::{lifetimeless::SRes, SystemParamItem},
     log::*,
     pbr::{MeshBindGroups, SetMaterialBindGroup, SetMeshViewBindGroup},
-    render::render_phase::{
-        PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
+    render::{
+        render_phase::{
+            PhaseItem, RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass,
+        },
+        render_resource::IndexFormat,
     },
 };
 
@@ -37,12 +40,22 @@ impl<P: PhaseItem> RenderCommand<P> for DrawSnakeMesh {
             error!("snake instance not found");
             return RenderCommandResult::Failure;
         };
-        let Some(snake_buffer) = snake.vertex_buffer.as_ref() else {
-            error!("snake buffer does not exist");
+        let Some(vertex_buffer) = snake.vertex_buffer.as_ref() else {
+            error!("vertex buffer does not exist");
             return RenderCommandResult::Failure;
         };
-        pass.set_vertex_buffer(0, snake_buffer.slice(..));
-        pass.draw(0..snake.vertex_count as u32, item.batch_range().clone());
+        let Some(index_buffer) = snake.index_buffer.as_ref() else {
+            error!("index buffer does not exist");
+            return RenderCommandResult::Failure;
+        };
+        let Some(indirect_buffer) = snake.indirect_buffer.as_ref() else {
+            error!("indirect buffer does not exist");
+            return RenderCommandResult::Failure;
+        };
+        pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        pass.set_index_buffer(index_buffer.slice(..), 0, IndexFormat::Uint32);
+        pass.draw_indexed_indirect(indirect_buffer, 0);
+
         RenderCommandResult::Success
     }
 }

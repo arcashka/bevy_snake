@@ -18,7 +18,7 @@ use bevy::{
     },
 };
 
-pub use components::SnakeMesh;
+pub use components::{PolygonizationSettings, SnakeMesh};
 
 use node::{SnakeComputeNode, SnakeComputeNodeLabel};
 
