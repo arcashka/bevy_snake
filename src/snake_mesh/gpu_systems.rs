@@ -308,7 +308,7 @@ pub fn create_snake_buffers(
         if snake.vertex_buffer.is_none() {
             let vertex_buffer = render_device.create_buffer(&BufferDescriptor {
                 label: Some("snake vertex buffer"),
-                size: 1024 * 16,
+                size: 1024 * 256,
                 usage: BufferUsages::VERTEX | BufferUsages::STORAGE,
                 mapped_at_creation: false,
             });
@@ -319,7 +319,7 @@ pub fn create_snake_buffers(
         if snake.index_buffer.is_none() {
             let index_buffer = render_device.create_buffer(&BufferDescriptor {
                 label: Some("snake index buffer"),
-                size: 1024 * 16,
+                size: 1024 * 256,
                 usage: BufferUsages::INDEX | BufferUsages::STORAGE,
                 mapped_at_creation: false,
             });
@@ -330,7 +330,7 @@ pub fn create_snake_buffers(
         if snake.cell_buffer.is_none() {
             let cells_buffer = render_device.create_buffer(&BufferDescriptor {
                 label: Some("Snake cells buffer"),
-                size: 1024 * 16,
+                size: 1024 * 256,
                 usage: BufferUsages::STORAGE,
                 mapped_at_creation: false,
             });

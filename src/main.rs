@@ -44,12 +44,12 @@ pub fn setup(
             fake_mesh_asset: meshes.add(Cuboid::default()).into(),
         },
         PolygonizationSettings {
-            grid_size: Vec3::new(8.0, 8.0, 8.0),
-            grid_origin: Vec3::new(-4.0, -4.0, -4.0),
+            grid_size: Vec3::new(20.0, 20.0, 20.0),
+            grid_origin: Vec3::new(-10.0, -10.0, -10.0),
         },
         materials.add(StandardMaterial {
             base_color: Color::ORANGE_RED,
-            unlit: true,
+            unlit: false,
             cull_mode: None,
             ..default()
         }),
