@@ -1,6 +1,7 @@
 mod components;
 mod draw_command;
 mod gpu_systems;
+mod isosurface_render_phase;
 mod node;
 mod pipelines;
 mod resources;
@@ -34,25 +35,6 @@ impl Plugin for SnakeMeshPlugin {
                 (
                     gpu_systems::queue_material_snakes::<StandardMaterial>.in_set(RenderSet::Queue),
                     gpu_systems::create_snake_buffers.in_set(RenderSet::PrepareResources),
-                    (
-                        batch_and_prepare_render_phase::<
-                            Transmissive3d,
-                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
-                        >,
-                        batch_and_prepare_render_phase::<
-                            Transparent3d,
-                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
-                        >,
-                        batch_and_prepare_render_phase::<
-                            Opaque3d,
-                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
-                        >,
-                        batch_and_prepare_render_phase::<
-                            AlphaMask3d,
-                            pipelines::SnakeMaterialPipeline<StandardMaterial>,
-                        >,
-                    )
-                        .in_set(RenderSet::PrepareResources),
                     gpu_systems::prepare_snake_compute_bind_groups
                         .in_set(RenderSet::PrepareBindGroups),
                 ),
